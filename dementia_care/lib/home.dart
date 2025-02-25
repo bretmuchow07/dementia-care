@@ -1,3 +1,5 @@
+import 'package:dementia_care/screens/moods/moodcard.dart';
+import 'package:dementia_care/widgets/memorycard.dart';
 import 'package:flutter/material.dart';
 import 'widgets/bottomnav.dart';
 import 'screens/gallery/gallery.dart';
@@ -176,18 +178,7 @@ class HomeScreenContent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  height: 100,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: const [
-                      // Uncomment and add your memory cards here
-                      // _buildMemoryCard('Best of January'),
-                      // _buildMemoryCard('Revisit The Moment'),
-                      // _buildMemoryCard('Similar Shots'),
-                    ],
-                  ),
-                ),
+                MemoryCardList(), // Ensure this is properly imported
               ],
             ),
           ),
@@ -226,18 +217,7 @@ class HomeScreenContent extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  height: 100,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: const [
-                      // Uncomment and add your mood cards here
-                      // _buildMoodCard('Happy'),
-                      // _buildMoodCard('Sad'),
-                      // _buildMoodCard('Excited'),
-                    ],
-                  ),
-                ),
+                MoodCardList(), // Ensure this is properly imported
               ],
             ),
           ),
@@ -246,5 +226,3 @@ class HomeScreenContent extends StatelessWidget {
     );
   }
 }
-
-//fafo
