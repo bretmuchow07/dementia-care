@@ -32,6 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
           _emailController.text,
           _passwordController.text,
         );
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Registration successful!'),

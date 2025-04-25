@@ -1,3 +1,4 @@
+import 'package:dementia_care/screens/auth/edit_profile.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/widgets/memorycard.dart';
 import 'package:flutter/material.dart';
@@ -57,11 +58,19 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          ListTile(
+                            ListTile(
                             leading: const Icon(Icons.edit),
                             title: const Text('Edit Profile'),
-                            onTap: () => Navigator.pop(context),
-                          ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AboutMePage(),
+                              ),
+                              );
+                            },
+                            ),
                           ListTile(
                             leading: const Icon(Icons.logout),
                             title: const Text('Sign Out'),

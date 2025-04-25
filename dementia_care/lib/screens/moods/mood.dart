@@ -38,7 +38,7 @@ class MoodPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20.0),
                 ),
-                child: const MoodCard(emoji: '😊', moodTitle: 'Happy'),
+                child: const MoodCard(emoji: '😊', moodTitle:'Happy'),
               ),
             ),
 
@@ -64,7 +64,7 @@ class MoodPage extends StatelessWidget {
                       ),
                       child: const Text(
                         'How are you feeling today?',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -87,7 +87,7 @@ class MoodPage extends StatelessWidget {
                       ),
                       child: const Text(
                         'View Mood History',
-                        style: TextStyle(fontSize: 16, color: Color(0xFF265F7E)),
+                        style: TextStyle(fontSize: 16, color: Color(0xFF265F7E),fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -96,7 +96,21 @@ class MoodPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 20), // Reduced spacing
-
+ // Title
+            const Padding(
+              padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Mood Board',
+                  style: TextStyle(
+                    color: Color(0xFF265F7E),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+            ),
             // Placeholder Content
             const Expanded(
               child: Center(
