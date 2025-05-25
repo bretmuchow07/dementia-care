@@ -24,7 +24,7 @@ class MoodPage extends StatelessWidget {
                   style: TextStyle(
                     color: Color(0xFF265F7E),
                     fontWeight: FontWeight.bold,
-                    fontSize: 22,
+                    fontSize: 25,
                   ),
                 ),
               ),
@@ -64,7 +64,7 @@ class MoodPage extends StatelessWidget {
                       ),
                       child: const Text(
                         'How are you feeling today?',
-                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -87,7 +87,7 @@ class MoodPage extends StatelessWidget {
                       ),
                       child: const Text(
                         'View Mood History',
-                        style: TextStyle(fontSize: 16, color: Color(0xFF265F7E),fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 20, color: Color(0xFF265F7E),fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -106,7 +106,7 @@ class MoodPage extends StatelessWidget {
                   style: TextStyle(
                     color: Color(0xFF265F7E),
                     fontWeight: FontWeight.bold,
-                    fontSize: 22,
+                    fontSize: 25,
                   ),
                 ),
               ),

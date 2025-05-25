@@ -25,7 +25,7 @@ class MoodCard extends StatelessWidget {
             Text(
               moodTitle,
               style: const TextStyle(
-                fontSize: 16.0,
+                fontSize: 20.0,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,

@@ -134,7 +134,7 @@ class _AboutMePageState extends State<AboutMePage> {
               ElevatedButton(
                 onPressed: () {},
                 style: ElevatedButton.styleFrom(
-                     backgroundColor: Color(0xFF265F7E),
+                     backgroundColor: const Color(0xFF265F7E),
                   minimumSize: const Size(double.infinity, 50),
                 ),
                 child: const Text("Save",  

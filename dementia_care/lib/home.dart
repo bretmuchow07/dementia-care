@@ -138,7 +138,7 @@ class HomeScreenContent extends StatelessWidget {
                           Text(
                             'Welcome to Dementia Care',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -166,7 +166,7 @@ class HomeScreenContent extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFF265F7E),
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        fontSize: 25,
                       ),
                     ),
                     GestureDetector(
@@ -205,7 +205,7 @@ class HomeScreenContent extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFF265F7E),
                         fontWeight: FontWeight.bold,
-                        fontSize: 20,
+                        fontSize: 25,
                       ),
                     ),
                     GestureDetector(

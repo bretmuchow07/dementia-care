@@ -9,7 +9,7 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Moves it up
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), // Moves it up
       decoration: BoxDecoration(
         color: Colors.white, // Background color
         borderRadius: BorderRadius.circular(30), // Rounded edges
@@ -32,6 +32,7 @@ class BottomNavBar extends StatelessWidget {
           unselectedItemColor: Colors.grey,
           showSelectedLabels: true,
           showUnselectedLabels: true,
+      
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
