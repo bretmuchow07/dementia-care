@@ -2,16 +2,18 @@ import 'package:dementia_care/screens/auth/auth_gate.dart';
 import 'package:flutter/material.dart';
 //import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   await Supabase.initialize(
-    url: 'https://knlyoklxzbxlunxhsrda.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtubHlva2x4emJ4bHVueGhzcmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3Nzg4MzAsImV4cCI6MjA1NTM1NDgzMH0.A6GfEbsuMK6SIK0N-J8gMO85xJ2xwwztulK7ybbiSA0',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
-
   runApp(const MyApp());
 }
 
