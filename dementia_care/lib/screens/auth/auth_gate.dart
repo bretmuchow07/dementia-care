@@ -1,38 +1,58 @@
-import 'package:dementia_care/screens/auth/login.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'package:dementia_care/screens/auth/login.dart';
 import 'package:dementia_care/home.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
+  State<AuthGate> createState() => _AuthGateState();
+}
 
-      
+class _AuthGateState extends State<AuthGate> {
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        //loading
+        final session = Supabase.instance.client.auth.currentSession;
+
+        // Show loading spinner while waiting for the stream to connect
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.connectionState == ConnectionState.active) {
-          if (snapshot.hasData) {
+
+        // Listen to sign-in/sign-out events
+        if (snapshot.hasData) {
+          final authChange = snapshot.data!.event;
+          final newSession = snapshot.data!.session;
+
+          if (authChange == AuthChangeEvent.signedIn && newSession != null) {
+            // Save tokens securely
+            _storage.write(key: 'access_token', value: newSession.accessToken);
+            _storage.write(key: 'refresh_token', value: newSession.refreshToken);
+
             return const HomePage();
-          } else {
+          }
+
+          if (authChange == AuthChangeEvent.signedOut) {
+            _storage.deleteAll(); // optional cleanup
             return const LoginPage();
           }
+        }
+
+        // Fallback: check current session directly
+        if (session != null && session.user != null) {
+          return const HomePage();
         } else {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
+          return const LoginPage();
         }
       },
     );
