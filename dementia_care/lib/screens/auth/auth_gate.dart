@@ -49,7 +49,7 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         // Fallback: check current session directly
-        if (session != null && session.user != null) {
+        if (session != null) {
           return const HomePage();
         } else {
           return const LoginPage();

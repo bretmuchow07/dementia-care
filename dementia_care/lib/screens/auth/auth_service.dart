@@ -33,7 +33,7 @@ class AuthService {
   // Get Current User's Email
   String? getCurrentUser() {
     final session = _supabase.auth.currentSession;
-    return session?.user?.email;
+    return session?.user.email;
   }
 
   // 🔐 Get Access Token (JWT)
@@ -46,5 +46,16 @@ class AuthService {
   String? getRefreshToken() {
     final session = _supabase.auth.currentSession;
     return session?.refreshToken;
+  }
+
+  // Check if user profile exists in public.profile table
+  Future<bool> checkUserProfile(String userId) async {
+    final response = await _supabase
+        .from('profile')
+        .select('id')
+        .eq('userId', userId)
+        .maybeSingle();
+
+    return response != null;
   }
 }

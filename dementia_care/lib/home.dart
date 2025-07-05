@@ -1,3 +1,4 @@
+import 'package:dementia_care/screens/auth/auth_service.dart';
 import 'package:dementia_care/screens/auth/edit_profile.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/widgets/memorycard.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'widgets/bottomnav.dart';
 import 'screens/gallery/gallery.dart';
 import 'screens/moods/mood.dart';
+import 'screens/auth/login.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  final AuthService _authService = AuthService();
 
   // List of pages to switch between
   final List<Widget> _pages = [
@@ -74,7 +77,16 @@ class _HomePageState extends State<HomePage> {
                           ListTile(
                             leading: const Icon(Icons.logout),
                             title: const Text('Sign Out'),
-                            onTap: () => Navigator.pop(context),
+                            onTap: () async {
+                              Navigator.pop(context); // Close the bottom sheet
+                              await _authService.signOut();
+                              if (mounted) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                                  (route) => false,
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),

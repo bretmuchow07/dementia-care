@@ -14,8 +14,8 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Future<void> _pickImages() async {
     final ImagePicker picker = ImagePicker();
-    final List<XFile>? picked = await picker.pickMultiImage();
-    if (picked != null && picked.isNotEmpty) {
+    final List<XFile> picked = await picker.pickMultiImage();
+    if (picked.isNotEmpty) {
       _galleryKey.currentState?.addImages(picked);
     }
   }
