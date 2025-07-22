@@ -5,43 +5,43 @@ class MemoryCard extends StatelessWidget {
   final String title;
 
   const MemoryCard({super.key, required this.imageUrl, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(15.0),
-              topRight: Radius.circular(15.0),
-            ),
+@override
+Widget build(BuildContext context) {
+  return Card(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(15.0),
+    ),
+    child: Column(
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(15.0),
+            topRight: Radius.circular(15.0),
+          ),
+          child: SizedBox(
+            width: 120,
+            height: 100,
             child: Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              height: 100.0,
-              width: double.infinity,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.bold,
-              ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16.0,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
-
+}
 class MemoryCardList extends StatelessWidget {
   final List<Map<String, String>> memoryCards = [
     {'imageUrl': 'https://example.com/image1.jpg', 'title': 'Best of January'},

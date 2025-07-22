@@ -43,12 +43,13 @@ dependencies:
   flutter_dotenv: ^5.2.1
   firebase_storage: ^12.4.9
   country_picker: ^2.0.21
+  flutter_launcher_icons: ^0.14.4
+  supabase_codegen: ^1.4.0
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

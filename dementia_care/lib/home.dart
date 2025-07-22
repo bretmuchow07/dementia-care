@@ -4,6 +4,7 @@ import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/widgets/memorycard.dart';
 import 'package:flutter/material.dart';
 import 'widgets/bottomnav.dart';
+import 'package:dementia_care/services/profile.dart';
 import 'screens/gallery/gallery.dart';
 import 'screens/moods/mood.dart';
 import 'screens/auth/login.dart';
@@ -19,7 +20,6 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final AuthService _authService = AuthService();
 
-  // List of pages to switch between
   final List<Widget> _pages = [
     const HomeScreenContent(),
     const GalleryPage(),
@@ -32,80 +32,95 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<String?> _getProfilePicture() async {
+    final profile = await ProfileService().getProfile();
+    return (profile?.profilePicture?.isNotEmpty ?? false) ? profile?.profilePicture : null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF1F8FA),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Dementia Care',
-              style: TextStyle(
-                color: Color(0xFF265F7E),
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return FutureBuilder<String?>(
+      future: _getProfilePicture(),
+      builder: (context, snapshot) {
+        String profilePicture = "https://ui-avatars.com/api/?name=User&background=ccc&color=555&size=128";
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData && (snapshot.data?.isNotEmpty ?? false)) {
+          profilePicture = snapshot.data!;
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFF1F8FA),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Dementia Care',
+                  style: TextStyle(
+                    color: Color(0xFF265F7E),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
                   ),
-                  builder: (BuildContext context) {
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                            ListTile(
-                            leading: const Icon(Icons.edit),
-                            title: const Text('Edit Profile'),
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const AboutMePage(),
-                              ),
-                              );
-                            },
-                            ),
-                          ListTile(
-                            leading: const Icon(Icons.logout),
-                            title: const Text('Sign Out'),
-                            onTap: () async {
-                              Navigator.pop(context); // Close the bottom sheet
-                              await _authService.signOut();
-                              if (mounted) {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                                  (route) => false,
-                                );
-                              }
-                            },
-                          ),
-                        ],
+                ),
+                GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                       ),
+                      builder: (BuildContext context) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              ListTile(
+                                leading: const Icon(Icons.edit),
+                                title: const Text('Edit Profile'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const AboutMePage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.logout),
+                                title: const Text('Sign Out'),
+                                onTap: () async {
+                                  Navigator.pop(context);
+                                  await _authService.signOut();
+                                  if (mounted) {
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                                      (route) => false,
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-              child: const CircleAvatar(
-                backgroundImage: AssetImage('assets/user_profile.jpg'),
-              ),
+                  child: CircleAvatar(
+                    backgroundImage: NetworkImage(profilePicture),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
+          ),
+          body: _pages[_selectedIndex],
+          bottomNavigationBar: BottomNavBar(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+          ),
+        );
+      },
     );
   }
 }
@@ -113,137 +128,175 @@ class _HomePageState extends State<HomePage> {
 class HomeScreenContent extends StatelessWidget {
   const HomeScreenContent({super.key});
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  Future<Map<String, String>> _getUserInfo() async {
+    final profile = await ProfileService().getProfile();
+    final fullName = profile?.fullName ?? 'User';
+    final firstName = fullName.split(' ').first;
+    final profilePicture = profile?.profilePicture;
+    return {
+      'name': firstName,
+      'picture': profilePicture ?? '',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Centered Card
-          Center(
-            child: SizedBox(
-              height: 200,
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
-                ),
-                elevation: 5,
-                color: Colors.white,
-                child: const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundImage: AssetImage('assets/user_profile.jpg'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Welcome to Dementia Care',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+    return FutureBuilder<Map<String, String>>(
+      future: _getUserInfo(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Failed to load user info.'));
+        }
+
+        final greeting = _getGreeting();
+        final userName = snapshot.data?['name'] ?? 'User';
+        final profilePicture = (snapshot.data?['picture']?.isNotEmpty ?? false)
+            ? snapshot.data!['picture']!
+            : "https://ui-avatars.com/api/?name=$userName&background=ccc&color=555&size=128";
+
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Center(
+                child: SizedBox(
+                  height: 200,
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    elevation: 5,
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width - 64, // 32 padding each side
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: NetworkImage(profilePicture),
+                                ),
+                              ],
                             ),
-                          ),
-                          SizedBox(height: 8),
-                          Text('This is the home page'),
-                        ],
+                            const SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '$greeting, $userName!',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text('This is the home page'),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          // My Memories Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // My Memories Section
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'My Memories',
-                      style: TextStyle(
-                        color: Color(0xFF265F7E),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 25,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const GalleryPage()),
-                        );
-                      },
-                      child: const Text(
-                        'See All',
-                        style: TextStyle(
-                          color: Color(0xFF265F7E),
-                          fontSize: 16,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'My Memories',
+                          style: TextStyle(
+                            color: Color(0xFF265F7E),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 25,
+                          ),
                         ),
-                      ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const GalleryPage()),
+                            );
+                          },
+                          child: const Text(
+                            'See All',
+                            style: TextStyle(
+                              color: Color(0xFF265F7E),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 10),
+                    MemoryCardList(),
                   ],
                 ),
-                const SizedBox(height: 10),
-                MemoryCardList(), // Ensure this is properly imported
-              ],
-            ),
-          ),
-          // My Moods Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              // My Moods Section
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'My Moods',
-                      style: TextStyle(
-                        color: Color(0xFF265F7E),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 25,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const MoodPage()),
-                        );
-                      },
-                      child: const Text(
-                        'See All',
-                        style: TextStyle(
-                          color: Color(0xFF265F7E),
-                          fontSize: 16,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'My Moods',
+                          style: TextStyle(
+                            color: Color(0xFF265F7E),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 25,
+                          ),
                         ),
-                      ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const MoodPage()),
+                            );
+                          },
+                          child: const Text(
+                            'See All',
+                            style: TextStyle(
+                              color: Color(0xFF265F7E),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 10),
+                    MoodCardList(),
                   ],
                 ),
-                const SizedBox(height: 10),
-                MoodCardList(), // Ensure this is properly imported
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

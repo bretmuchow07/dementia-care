@@ -73,6 +73,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  change_case:
+    dependency: transitive
+    description:
+      name: change_case
+      sha256: e41ef3df58521194ef8d7649928954805aeb08061917cf658322305e61568003
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
   characters:
     dependency: transitive
     description:
@@ -145,6 +153,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
+  dotenv:
+    dependency: transitive
+    description:
+      name: dotenv
+      sha256: "379e64b6fc82d3df29461d349a1796ecd2c436c480d4653f3af6872eccbc90e1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.0"
   fake_async:
     dependency: transitive
     description:
@@ -263,13 +279,13 @@ packages:
     source: hosted
     version: "5.2.1"
   flutter_launcher_icons:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: flutter_launcher_icons
-      sha256: "526faf84284b86a4cb36d20a5e45147747b7563d921373d4ee0559c54fcdbcea"
+      sha256: "10f13781741a2e3972126fae08393d3c4e01fa4cd7473326b94b72cf594195e7"
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.1"
+    version: "0.14.4"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -488,6 +504,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.1"
+  latlng:
+    dependency: transitive
+    description:
+      name: latlng
+      sha256: a324c80073ef959d67ead88b57a717b7b87f182da1b980ccae92b3555ac82712
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.7"
   leak_tracker:
     dependency: transitive
     description:
@@ -520,6 +544,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
+  logger:
+    dependency: transitive
+    description:
+      name: logger
+      sha256: "2621da01aabaf223f8f961e751f2c943dbb374dc3559b982f200ccedadaa6999"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.0"
   logging:
     dependency: transitive
     description:
@@ -560,6 +592,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mock_supabase_http_client:
+    dependency: transitive
+    description:
+      name: mock_supabase_http_client
+      sha256: "43b9681e43aa5bec7c801722f1b5e58b1a4b1448d346f29a47af0eb05abf4599"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3+2"
   path:
     dependency: transitive
     description:
@@ -664,6 +704,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.1"
+  quiver:
+    dependency: transitive
+    description:
+      name: quiver
+      sha256: ea0b925899e64ecdfbf9c7becb60d5b50e706ade44a85b2363be2a22d88117d2
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.2"
   realtime_client:
     dependency: transitive
     description:
@@ -797,6 +845,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.6.3"
+  supabase_codegen:
+    dependency: "direct main"
+    description:
+      name: supabase_codegen
+      sha256: "07318f34aea0ed0a231edb9eaf2781b198a25c90e30696a920bb39c39e9e01c3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.0"
   supabase_flutter:
     dependency: "direct main"
     description:
