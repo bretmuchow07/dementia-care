@@ -1,7 +1,8 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/gallery.dart'; // Adjust the path if needed
 
 class GalleryView extends StatefulWidget {
   const GalleryView({Key? key}) : super(key: key);
@@ -12,24 +13,47 @@ class GalleryView extends StatefulWidget {
 
 class GalleryViewState extends State<GalleryView> {
   final List<XFile> _images = [];
+  List<Gallery> _galleryItems = [];
+  bool _loading = true;
 
   // This method allows parent widgets to add images
   void addImages(List<XFile> images) {
     setState(() {
       _images.addAll(images);
     });
+    // Optionally, you can refresh gallery items after upload
+    fetchGalleryItems();
   }
 
-  void _openPhoto(BuildContext context, XFile image) async {
-    final bytes = await image.readAsBytes();
-    if (!mounted) return;
+  @override
+  void initState() {
+    super.initState();
+    fetchGalleryItems();
+  }
+
+  Future<void> fetchGalleryItems() async {
+    setState(() => _loading = true);
+    final response = await Supabase.instance.client
+        .from('gallery')
+        .select()
+        .order('created_at', ascending: false);
+    setState(() {
+      _galleryItems = (response as List)
+          .map((item) => Gallery.fromJson(item))
+          .where((g) => g.imageUrl != null)
+          .toList();
+      _loading = false;
+    });
+  }
+
+  void _openPhoto(BuildContext context, String imageUrl) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
           appBar: AppBar(),
           body: Center(
             child: PhotoView(
-              imageProvider: MemoryImage(bytes),
+              imageProvider: NetworkImage(imageUrl),
               backgroundDecoration: const BoxDecoration(color: Colors.black),
             ),
           ),
@@ -40,34 +64,32 @@ class GalleryViewState extends State<GalleryView> {
 
   @override
   Widget build(BuildContext context) {
-    return _images.isEmpty
-        ? const Center(child: Text('No photos selected.'))
-        : GridView.builder(
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-            ),
-            itemCount: _images.length,
-            itemBuilder: (context, index) {
-              return FutureBuilder<Uint8List>(
-                future: _images[index].readAsBytes(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Container(color: Colors.grey[300]);
-                  }
-                  return GestureDetector(
-                    onTap: () => _openPhoto(context, _images[index]),
-                    child: Image.memory(
-                      snapshot.data!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
-                    ),
-                  );
-                },
-              );
-            },
-          );
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_galleryItems.isEmpty) {
+      return const Center(child: Text('No photos uploaded.'));
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+      ),
+      itemCount: _galleryItems.length,
+      itemBuilder: (context, index) {
+        final item = _galleryItems[index];
+        return GestureDetector(
+          onTap: () => _openPhoto(context, item.imageUrl!),
+          child: Image.network(
+            item.imageUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                Container(color: Colors.grey[300]),
+          ),
+        );
+      },
+    );
   }
 }

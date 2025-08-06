@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:dementia_care/screens/auth/auth_service.dart';
 import 'package:dementia_care/screens/auth/edit_profile.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';

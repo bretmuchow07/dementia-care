@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'gallery.dart';
 import 'mood.dart';
 import 'profile.dart';
+import 'patient_mood.dart';
 
 DementiaCare dementiaCareFromJson(String str) => DementiaCare.fromJson(json.decode(str));
 String dementiaCareToJson(DementiaCare data) => json.encode(data.toJson());
@@ -33,14 +34,14 @@ class DementiaCare {
       );
 
   factory DementiaCare.fromJson(Map<String, dynamic> json) => DementiaCare(
-        schema: json["\u0024schema"],
+        schema: json[r"$schema"],
         title: json["title"],
         type: json["type"],
         properties: DementiaCareProperties.fromJson(json["properties"]),
       );
 
   Map<String, dynamic> toJson() => {
-        "\u0024schema": schema,
+        r"$schema": schema,
         "title": title,
         "type": type,
         "properties": properties.toJson(),
@@ -50,7 +51,7 @@ class DementiaCare {
 class DementiaCareProperties {
   final Gallery gallery;
   final Mood mood;
-  final Gallery patientMood;
+  final PatientMood patientMood;
   final Profile profile;
 
   DementiaCareProperties({
@@ -63,7 +64,7 @@ class DementiaCareProperties {
   DementiaCareProperties copyWith({
     Gallery? gallery,
     Mood? mood,
-    Gallery? patientMood,
+    PatientMood? patientMood,
     Profile? profile,
   }) =>
       DementiaCareProperties(
@@ -73,10 +74,11 @@ class DementiaCareProperties {
         profile: profile ?? this.profile,
       );
 
-  factory DementiaCareProperties.fromJson(Map<String, dynamic> json) => DementiaCareProperties(
+  factory DementiaCareProperties.fromJson(Map<String, dynamic> json) =>
+      DementiaCareProperties(
         gallery: Gallery.fromJson(json["gallery"]),
         mood: Mood.fromJson(json["mood"]),
-        patientMood: Gallery.fromJson(json["patient_mood"]),
+        patientMood: PatientMood.fromJson(json["patient_mood"]),
         profile: Profile.fromJson(json["profile"]),
       );
 
