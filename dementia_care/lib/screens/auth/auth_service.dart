@@ -58,4 +58,19 @@ class AuthService {
 
     return response != null;
   }
+
+  // ✏️ Update Username (in public.profile table)
+  Future<void> updateUsername(String userId, String newUsername) async {
+    await _supabase
+        .from('profile')
+        .update({'email': newUsername})
+        .eq('id', userId);
+  }
+
+  // 🔐 Change Password
+  Future<void> changePassword(String newPassword) async {
+    await _supabase.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
 }

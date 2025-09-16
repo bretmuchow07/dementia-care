@@ -5,7 +5,9 @@ import 'package:country_picker/country_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AboutMePage extends StatefulWidget {
-  const AboutMePage({super.key});
+  final Map<String, dynamic> profile;
+
+  const AboutMePage({super.key, required this.profile});
 
   @override
   _AboutMePageState createState() => _AboutMePageState();

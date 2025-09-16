@@ -1,7 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:dementia_care/models/profile.dart';
 import 'package:dementia_care/screens/auth/auth_service.dart';
-import 'package:dementia_care/screens/auth/edit_profile.dart';
+import 'package:dementia_care/screens/auth/profile_view.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/widgets/memorycard.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final AuthService _authService = AuthService();
+  Profile? _profile;
 
   final List<Widget> _pages = [
     const HomeScreenContent(),
@@ -28,10 +30,21 @@ class _HomePageState extends State<HomePage> {
     const MoodPage(),
   ];
 
+  Future<void> _loadProfile() async {
+    final profile = await ProfileService().getProfile();
+    setState(() {
+      _profile = profile;
+    });
+  }
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
   }
 
   Future<String?> _getProfilePicture() async {
@@ -77,18 +90,24 @@ class _HomePageState extends State<HomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               ListTile(
-                                leading: const Icon(Icons.edit),
-                                title: const Text('Edit Profile'),
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const AboutMePage(),
-                                    ),
-                                  );
-                                },
-                              ),
+                            leading: const Icon(Icons.edit),
+                            title: const Text('My Profile'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (_profile != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProfileView(profile: _profile!),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Profile not loaded yet')),
+                                );
+                              }
+                            },
+                          ),
                               ListTile(
                                 leading: const Icon(Icons.logout),
                                 title: const Text('Sign Out'),
