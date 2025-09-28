@@ -11,6 +11,8 @@ import 'package:dementia_care/services/profile.dart';
 import 'screens/gallery/gallery.dart';
 import 'screens/moods/mood.dart';
 import 'screens/auth/login.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dementia_care/models/patient_mood.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -148,6 +150,34 @@ class _HomePageState extends State<HomePage> {
 
 class HomeScreenContent extends StatelessWidget {
   const HomeScreenContent({super.key});
+
+  // Fetch recent moods for the current user (most recent first, limit 10)
+  Future<List<PatientMood>> _getRecentMoods() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final response = await Supabase.instance.client
+        .from('patient_mood')
+        .select('''
+          id,
+          mood_id,
+          logged_at,
+          user_id,
+          description,
+          mood:mood_id (
+            id,
+            created_at,
+            name,
+            description
+          )
+        ''')
+        .eq('user_id', user.id)
+        .order('logged_at', ascending: false)
+        .limit(10);
+
+    final List list = response as List;
+    return list.map((e) => PatientMood.fromJson(e)).toList();
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -310,7 +340,25 @@ class HomeScreenContent extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    MoodCardList(),
+                    FutureBuilder<List<PatientMood>>(
+                      future: _getRecentMoods(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SizedBox(
+                            height: 150.0,
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return SizedBox(
+                            height: 150.0,
+                            child: Center(child: Text('Failed to load moods', style: TextStyle(color: Colors.grey[600]))),
+                          );
+                        }
+                        final moods = snapshot.data ?? [];
+                        return MoodCardList(moods: moods);
+                      },
+                    ),
                   ],
                 ),
               ),

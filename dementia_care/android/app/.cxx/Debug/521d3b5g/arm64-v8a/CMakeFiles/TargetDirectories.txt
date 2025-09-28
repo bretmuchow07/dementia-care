@@ -1,0 +1,2 @@
+C:/Users/User/Documents/Rough Work/dementia care/dementia_care/android/app/.cxx/Debug/521d3b5g/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/User/Documents/Rough Work/dementia care/dementia_care/android/app/.cxx/Debug/521d3b5g/arm64-v8a/CMakeFiles/rebuild_cache.dir

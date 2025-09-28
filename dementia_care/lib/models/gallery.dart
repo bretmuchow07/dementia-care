@@ -4,7 +4,6 @@ class Gallery {
   final String? imageUrl;
   final String description;
   final String userId;
-  final String? moodId;
 
   Gallery({
     required this.id,
@@ -12,7 +11,6 @@ class Gallery {
     this.imageUrl,
     required this.description,
     required this.userId,
-    this.moodId,
   });
 
   factory Gallery.fromJson(Map<String, dynamic> json) => Gallery(
@@ -21,7 +19,6 @@ class Gallery {
         imageUrl: json['image_url'],
         description: json['description'],
         userId: json['user_id'],
-        moodId: json['mood_id'],
       );
 
   Map<String, dynamic> toJson() => {
@@ -30,6 +27,5 @@ class Gallery {
         'image_url': imageUrl,
         'description': description,
         'user_id': userId,
-        'mood_id': moodId,
       };
 }

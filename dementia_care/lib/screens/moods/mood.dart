@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-//import 'package:dementia_care/screens/moods/moodcard.dart';
+import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/screens/moods/add_mood.dart';
 import 'package:dementia_care/screens/moods/mood_history.dart';
 import 'package:dementia_care/models/patient_mood.dart';
@@ -113,9 +113,12 @@ class _MoodPageState extends State<MoodPage> {
       );
     }
 
+    final moodName = _latestMood!.mood?.name ?? 'Unknown';
+    final iconData = getMoodIconByName(moodName);
+
     // If mood data is available, display it
     return Container(
-      height: 160.0,
+      height: 205.0,
       decoration: BoxDecoration(
         color: const Color(0xFF265F7E).withOpacity(0.1),
         borderRadius: BorderRadius.circular(20.0),
@@ -129,6 +132,12 @@ class _MoodPageState extends State<MoodPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(
+              iconData,
+              size: 40,
+              color: const Color(0xFF265F7E),
+            ),
+            const SizedBox(height: 8),
             Text(
               _latestMood!.mood?.name ?? 'Unknown Mood',
               style: const TextStyle(
