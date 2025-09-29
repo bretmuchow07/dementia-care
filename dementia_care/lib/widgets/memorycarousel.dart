@@ -1,4 +1,6 @@
 import 'package:dementia_care/models/memory.dart';
+//import 'package:dementia_care/widgets/galleryview.dart';
+import 'package:dementia_care/widgets/memorycard.dart';
 import 'package:flutter/material.dart';
 
 class MemoriesCarousel extends StatelessWidget {
@@ -18,15 +20,15 @@ class MemoriesCarousel extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: GestureDetector(
-              onTap: () {
-                // Navigate to gallery view for this group
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MemoryGalleryScreen(group: group),
-                  ),
-                );
-              },
+              // onTap: () {
+              //   // Navigate to gallery view for this group
+              //   Navigator.push(
+              //     context,
+              //     MaterialPageRoute(
+              //       builder: (_) => GalleryView(group: group),
+              //     ),
+              //   );
+              // },
               child: MemoryCard(
                 imageUrl: group.imageUrls.first, // show first image as thumbnail
                 title: group.title,

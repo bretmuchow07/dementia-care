@@ -1,6 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:dementia_care/models/profile.dart';
+import 'package:dementia_care/models/gallery.dart';
+import 'package:dementia_care/models/memory.dart';
 import 'package:dementia_care/screens/auth/auth_service.dart';
 import 'package:dementia_care/screens/auth/profile_view.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
@@ -150,6 +152,68 @@ class _HomePageState extends State<HomePage> {
 
 class HomeScreenContent extends StatelessWidget {
   const HomeScreenContent({super.key});
+
+  // Fetch recent gallery items for the current user and group them by date
+  Future<List<MemoryGroup>> _getRecentMemories() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final response = await Supabase.instance.client
+        .from('gallery')
+        .select()
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(50); // Fetch more to have enough for grouping
+
+    final List list = response as List;
+    final galleries = list.map((e) => Gallery.fromJson(e)).toList();
+    
+    // Group images by date categories
+    final Map<String, List<Gallery>> grouped = {};
+    final now = DateTime.now();
+    
+    for (var gallery in galleries) {
+      final createdDate = gallery.createdAt;
+      final difference = now.difference(createdDate);
+      
+      String groupKey;
+      if (difference.inDays == 0) {
+        groupKey = 'Today';
+      } else if (difference.inDays == 1) {
+        groupKey = 'Yesterday';
+      } else if (difference.inDays <= 7) {
+        groupKey = 'This Week';
+      } else if (difference.inDays <= 30) {
+        groupKey = 'This Month';
+      } else if (difference.inDays <= 90) {
+        groupKey = 'Recent';
+      } else {
+        groupKey = 'Older';
+      }
+      
+      grouped.putIfAbsent(groupKey, () => []);
+      grouped[groupKey]!.add(gallery);
+    }
+    
+    // Convert to MemoryGroup objects
+    final memoryGroups = grouped.entries.map((entry) {
+      final imageUrls = entry.value
+          .map((g) => g.imageUrl ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      return MemoryGroup(title: entry.key, imageUrls: imageUrls);
+    }).where((mg) => mg.imageUrls.isNotEmpty).toList();
+    
+    // Sort groups by priority (Today, Yesterday, This Week, etc.)
+    final priorityOrder = ['Today', 'Yesterday', 'This Week', 'This Month', 'Recent', 'Older'];
+    memoryGroups.sort((a, b) {
+      final aIndex = priorityOrder.indexOf(a.title);
+      final bIndex = priorityOrder.indexOf(b.title);
+      return aIndex.compareTo(bIndex);
+    });
+    
+    return memoryGroups;
+  }
 
   // Fetch recent moods for the current user (most recent first, limit 10)
   Future<List<PatientMood>> _getRecentMoods() async {
@@ -301,7 +365,39 @@ class HomeScreenContent extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    MemoryCardList(),
+                    FutureBuilder<List<MemoryGroup>>(
+                      future: _getRecentMemories(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const SizedBox(
+                            height: 150.0,
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return SizedBox(
+                            height: 150.0,
+                            child: Center(child: Text('Failed to load memories', style: TextStyle(color: Colors.grey[600]))),
+                          );
+                        }
+                        final memoryGroups = snapshot.data ?? [];
+                        
+                        if (memoryGroups.isEmpty) {
+                          return SizedBox(
+                            height: 150.0,
+                            child: Center(
+                              child: Text(
+                                'No memories yet',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        // Use MemoryCardList widget to display grouped memories
+                        return MemoryCardList(memoryGroups: memoryGroups);
+                      },
+                    ),
                   ],
                 ),
               ),

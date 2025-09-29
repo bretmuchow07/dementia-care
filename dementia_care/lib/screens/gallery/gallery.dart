@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dementia_care/widgets/galleryview.dart';
-import 'package:camera/camera.dart';
+import 'package:dementia_care/widgets/cameracapture.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dementia_care/models/gallery.dart';
 import 'package:uuid/uuid.dart';
+import 'package:dementia_care/screens/gallery/upload.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:dementia_care/models/memory.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -12,6 +15,7 @@ class GalleryPage extends StatefulWidget {
   @override
   State<GalleryPage> createState() => _GalleryPageState();
 }
+
 class _GalleryPageState extends State<GalleryPage> {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
@@ -45,7 +49,6 @@ class _GalleryPageState extends State<GalleryPage> {
         _isLoading = false;
       });
     } catch (e) {
-      // Keep logging simple
       print('Error loading gallery: $e');
       setState(() {
         _isLoading = false;
@@ -78,7 +81,8 @@ class _GalleryPageState extends State<GalleryPage> {
     } else if (now.difference(imageDate).inDays < 7) {
       return _formatWeekday(date);
     } else {
-      return _formatDate(date);
+      // Group by month for older images
+      return _formatMonthYear(date);
     }
   }
 
@@ -87,119 +91,72 @@ class _GalleryPageState extends State<GalleryPage> {
     return weekdays[date.weekday - 1];
   }
 
-  String _formatDate(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-
-  Future<bool> _uploadAndInsert(XFile image) async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        _showResultDialog(
-          success: false,
-          title: 'Not Authenticated',
-          message: 'Please sign in to upload images.',
-        );
-        return false;
-      }
-
-      final bytes = await image.readAsBytes();
-      if (bytes.isEmpty) {
-        throw Exception('Empty file');
-      }
-
-      final fileExt = (image.path.split('.').last).toLowerCase();
-      final safeExt = fileExt.replaceAll(RegExp(r'[^a-z0-9]'), '');
-      final fileName = 'gallery_${DateTime.now().millisecondsSinceEpoch}.$safeExt';
-      final filePath = 'gallery/$fileName';
-      final contentType = 'image/$safeExt';
-
-      await Supabase.instance.client.storage
-          .from('gallery')
-          .uploadBinary(filePath, bytes, fileOptions: FileOptions(contentType: contentType));
-
-      final publicUrl = Supabase.instance.client.storage.from('gallery').getPublicUrl(filePath);
-      final imageUrl = publicUrl.toString();
-
-      if (imageUrl.isEmpty) {
-        throw Exception('Failed to obtain public URL');
-      }
-
-      final newGallery = Gallery(
-        id: uuid.v4(),
-        createdAt: DateTime.now(),
-        imageUrl: imageUrl,
-        description: '',
-        userId: userId,
-      );
-
-      await Supabase.instance.client.from('gallery').insert(newGallery.toJson());
-
-      return true;
-    } catch (e) {
-      print('Upload error: $e');
-      return false;
-    }
+  String _formatMonthYear(DateTime date) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return '${months[date.month - 1]} ${date.year}';
   }
 
   Future<void> _pickImages() async {
     final List<XFile>? picked = await _picker.pickMultiImage();
     if (picked == null || picked.isEmpty) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    final result = await Navigator.of(context).push<bool?>(
+      MaterialPageRoute(
+        builder: (_) => UploadPreviewPage(initialImages: picked),
+      ),
+    );
 
-    int successCount = 0;
-    try {
-      for (final image in picked) {
-        final ok = await _uploadAndInsert(image);
-        if (ok) successCount++;
-      }
-      await _loadGalleryImages();
-      _showResultDialog(
-        success: successCount > 0,
-        title: successCount > 0 ? 'Upload Complete' : 'Upload Failed',
-        message: successCount > 0
-            ? '$successCount image(s) uploaded successfully.'
-            : 'No images were uploaded. Please try again.',
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    if (result == true) {
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        await _loadGalleryImages();
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
 
   Future<void> _openCamera() async {
-    final result = await Navigator.of(context).push<XFile?>(
+    final List<dynamic>? result = await Navigator.of(context).push<List<dynamic>?>(
       MaterialPageRoute(
         builder: (_) => const CameraCapturePage(),
       ),
     );
-    if (result == null) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (result == null || result.isEmpty) return;
 
-    try {
-      final ok = await _uploadAndInsert(result);
-      await _loadGalleryImages();
-      _showResultDialog(
-        success: ok,
-        title: ok ? 'Upload Successful' : 'Upload Failed',
-        message: ok ? 'Your photo was uploaded.' : 'Failed to upload image. Please try again.',
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    final images = result.cast<XFile>();
+
+    final uploaded = await Navigator.of(context).push<bool?>(
+      MaterialPageRoute(
+        builder: (_) => UploadPreviewPage(initialImages: images),
+      ),
+    );
+
+    if (uploaded == true) {
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        await _loadGalleryImages();
+        _showResultDialog(
+          success: true,
+          title: 'Upload Successful',
+          message: 'Your photo(s) were uploaded.',
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -298,15 +255,75 @@ class _GalleryPageState extends State<GalleryPage> {
                 decoration: InputDecoration(
                   hintText: 'Search...',
                   hintStyle: TextStyle(color: Colors.grey[500]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                   suffixIcon: IconButton(
-                    icon: Icon(Icons.mic, color: Colors.grey[600]),
-                    onPressed: () {
-                      // Voice input functionality
+                    icon: Icon(Icons.search, color: Colors.grey[600]),
+                    onPressed: () async {
+                      final query = _searchController.text.trim().toLowerCase();
+                      if (query.isEmpty) {
+                        setState(() {
+                          _isLoading = true;
+                        });
+                        await _loadGalleryImages();
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
+                        return;
+                      }
+
+                      setState(() {
+                        _isLoading = true;
+                      });
+
+                      try {
+                        final userId = Supabase.instance.client.auth.currentUser?.id;
+                        if (userId == null) {
+                          if (mounted) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                          return;
+                        }
+
+                        final response = await Supabase.instance.client
+                          .from('gallery')
+                          .select()
+                          .eq('user_id', userId);
+
+                        final List<Gallery> allImages = (response as List)
+                          .map((json) => Gallery.fromJson(json))
+                          .toList();
+
+                        final filtered = allImages.where((img) {
+                          final desc = img.description.toLowerCase();
+                          final dateStr = _formatMonthYear(img.createdAt).toLowerCase();
+                          final weekdayStr = _formatWeekday(img.createdAt).toLowerCase();
+                          return desc.contains(query) ||
+                            dateStr.contains(query) ||
+                            weekdayStr.contains(query);
+                        }).toList();
+
+                        if (mounted) {
+                          setState(() {
+                            _galleryImages = filtered;
+                            _groupImagesByDate();
+                          });
+                        }
+                      } catch (e) {
+                        print('Search error: $e');
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
+                      }
                     },
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 ),
               ),
             ),
@@ -374,6 +391,7 @@ class _GalleryPageState extends State<GalleryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_galleryImages.isNotEmpty) _buildMemoriesSection(),
+          const SizedBox(height: 12),
           ..._groupedImages.entries.map((entry) => _buildDateGroup(entry.key, entry.value)),
           const SizedBox(height: 20),
         ],
@@ -381,8 +399,22 @@ class _GalleryPageState extends State<GalleryPage> {
     );
   }
 
+  // Updated memories section: uses MemoryGroup and carousel_slider
   Widget _buildMemoriesSection() {
-    final recentImages = _galleryImages.take(5).toList();
+    final memoryGroups = _groupedImages.entries.map((entry) {
+      final imageUrls = entry.value.map((g) => g.imageUrl ?? '').where((s) => s.isNotEmpty).toList();
+      return MemoryGroup(title: entry.key, imageUrls: imageUrls);
+    }).where((mg) => mg.imageUrls.isNotEmpty).toList();
+
+    // Fallback to recentImages if we don't have grouped memories
+    final fallbackGroups = memoryGroups.isEmpty
+        ? [
+            MemoryGroup(
+              title: 'Recent',
+              imageUrls: _galleryImages.take(5).map((g) => g.imageUrl ?? '').where((s) => s.isNotEmpty).toList(),
+            )
+          ]
+        : memoryGroups;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -398,74 +430,77 @@ class _GalleryPageState extends State<GalleryPage> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 180,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: recentImages.length,
-              itemBuilder: (context, index) {
-                final image = recentImages[index];
-                return GestureDetector(
-                  onTap: () {
-                    final items = recentImages
-                        .map((g) => {'imageUrl': g.imageUrl ?? ''})
-                        .toList();
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => GalleryView(
-                        items: items,
-                        fullscreen: true,
-                        initialIndex: index,
+          CarouselSlider(
+            options: CarouselOptions(
+              height: 180,
+              enlargeCenterPage: true,
+              enableInfiniteScroll: false,
+              viewportFraction: 0.8,
+            ),
+            items: fallbackGroups.map((group) {
+              final firstUrl = group.imageUrls.isNotEmpty ? group.imageUrls[0] : '';
+              return GestureDetector(
+                onTap: () {
+                  // Open gallery with all images from this group
+                  final items = group.imageUrls.map((u) => {'imageUrl': u}).toList();
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => GalleryView(
+                      items: items,
+                      fullscreen: true,
+                      initialIndex: 0,
+                    ),
+                  ));
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ));
-                  },
-                  child: Container(
-                    width: 140,
-                    margin: EdgeInsets.only(right: index == recentImages.length - 1 ? 0 : 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (firstUrl.isNotEmpty)
+                          Image.network(firstUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey[300]))
+                        else
+                          Container(color: Colors.grey[300]),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.45),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 16,
+                          bottom: 16,
+                          right: 16,
+                          child: Text(
+                            group.title,
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            image.imageUrl ?? '',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: const Icon(Icons.error),
-                              );
-                            },
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.4),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 32),
         ],
@@ -500,14 +535,18 @@ class _GalleryPageState extends State<GalleryPage> {
               itemCount: images.length,
               itemBuilder: (context, index) {
                 final image = images[index];
+                // Find the index of this image in the full _galleryImages list
+                final globalIndex = _galleryImages.indexOf(image);
+                
                 return GestureDetector(
                   onTap: () {
-                    final items = images.map((g) => {'imageUrl': g.imageUrl ?? ''}).toList();
+                    // Pass ALL images to the gallery view, not just the group
+                    final items = _galleryImages.map((g) => {'imageUrl': g.imageUrl ?? ''}).toList();
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => GalleryView(
                         items: items,
                         fullscreen: true,
-                        initialIndex: index,
+                        initialIndex: globalIndex >= 0 ? globalIndex : 0,
                       ),
                     ));
                   },
@@ -594,178 +633,6 @@ class _GalleryPageState extends State<GalleryPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(25),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Camera Capture Page (unchanged)
-class CameraCapturePage extends StatefulWidget {
-  const CameraCapturePage({Key? key}) : super(key: key);
-
-  @override
-  State<CameraCapturePage> createState() => _CameraCapturePageState();
-}
-
-class _CameraCapturePageState extends State<CameraCapturePage> {
-  CameraController? _controller;
-  List<CameraDescription>? _cameras;
-  bool _isLoading = true;
-  bool _isTakingPicture = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _initCameras();
-  }
-
-  Future<void> _initCameras() async {
-    try {
-      _cameras = await availableCameras();
-      if (_cameras == null || _cameras!.isEmpty) {
-        setState(() {
-          _error = 'No cameras available';
-          _isLoading = false;
-        });
-        return;
-      }
-      _controller = CameraController(_cameras!.first, ResolutionPreset.high, enableAudio: false);
-      await _controller!.initialize();
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to initialize camera: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  Future<void> _takePicture() async {
-    if (_controller == null || !_controller!.value.isInitialized || _isTakingPicture) return;
-
-    setState(() {
-      _isTakingPicture = true;
-    });
-
-    try {
-      final XFile file = await _controller!.takePicture();
-      if (!mounted) return;
-      Navigator.of(context).pop<XFile?>(file);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error taking photo: $e')),
-      );
-    } finally {
-      setState(() {
-        _isTakingPicture = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.white),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Camera'),
-          backgroundColor: const Color(0xFF1B5E7E),
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error, size: 80, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                style: const TextStyle(fontSize: 18),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Take Photo'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: _controller != null && _controller!.value.isInitialized
-                ? CameraPreview(_controller!)
-                : const Center(
-              child: Text(
-                'Camera not available',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 60,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                const SizedBox(width: 60),
-                GestureDetector(
-                  onTap: _takePicture,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey[300]!, width: 4),
-                    ),
-                    child: _isTakingPicture
-                        ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF1B5E7E),
-                        strokeWidth: 3,
-                      ),
-                    )
-                        : const Center(
-                      child: Icon(
-                        Icons.camera_alt,
-                        size: 30,
-                        color: Color(0xFF1B5E7E),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 60),
-              ],
             ),
           ),
         ],
