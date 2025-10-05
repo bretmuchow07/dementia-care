@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:dementia_care/services/gemini.dart';
 
 class UploadPreviewPage extends StatefulWidget {
   final List<XFile> initialImages;
@@ -26,6 +27,7 @@ class _PreviewItem {
 class _UploadPreviewPageState extends State<UploadPreviewPage> {
   final ImagePicker _picker = ImagePicker();
   final Uuid _uuid = Uuid();
+  final GeminiService _geminiService = GeminiService();
   List<_PreviewItem> _items = [];
   bool _isUploading = false;
 
@@ -256,6 +258,20 @@ class _UploadPreviewPageState extends State<UploadPreviewPage> {
           final bytes = item.bytes ?? await item.file.readAsBytes();
           if (bytes.isEmpty) throw Exception('Empty file');
 
+          // Generate/refine caption with AI
+          String finalCaption;
+          try {
+            final userCaption = item.caption.text.trim();
+            finalCaption = await _geminiService.describeImageAndGetMood(
+              imageBytes: bytes,
+              userCaption: userCaption.isNotEmpty ? userCaption : null,
+            );
+          } catch (e) {
+            debugPrint('AI caption generation error: $e');
+            // Fallback to user caption if AI fails
+            finalCaption = item.caption.text.trim();
+          }
+
           final fileExt = (item.file.path.split('.').last).toLowerCase();
           final safeExt = fileExt.replaceAll(RegExp(r'[^a-z0-9]'), '');
           final fileName = 'gallery_${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4()}.$safeExt';
@@ -276,7 +292,7 @@ class _UploadPreviewPageState extends State<UploadPreviewPage> {
             'id': _uuid.v4(),
             'user_id': userId,
             'image_url': publicUrl,
-            'description': item.caption.text.trim(),
+            'description': finalCaption,
             'created_at': DateTime.now().toIso8601String(),
           };
 
@@ -369,7 +385,7 @@ class _UploadPreviewPageState extends State<UploadPreviewPage> {
                     child: TextField(
                       controller: item.caption,
                       decoration: InputDecoration(
-                        hintText: 'Add a caption...',
+                        hintText: 'Add a caption (optional)...',
                         hintStyle: TextStyle(color: Colors.grey[400]),
                         isDense: true,
                         border: OutlineInputBorder(

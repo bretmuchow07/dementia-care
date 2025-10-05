@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'package:flutter_gemini/flutter_gemini.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+
+  // Initialize the Gemini package with your API key
+  Gemini.init(apiKey: dotenv.env['GEMINI_API_KEY']!);
 
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,

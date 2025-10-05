@@ -1,8 +1,5 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:dementia_care/models/profile.dart';
-import 'package:dementia_care/models/gallery.dart';
-import 'package:dementia_care/models/memory.dart';
 import 'package:dementia_care/screens/auth/auth_service.dart';
 import 'package:dementia_care/screens/auth/profile_view.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
@@ -14,6 +11,9 @@ import 'screens/gallery/gallery.dart';
 import 'screens/moods/mood.dart';
 import 'screens/auth/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dementia_care/models/profile.dart';
+import 'package:dementia_care/models/gallery.dart';
+import 'package:dementia_care/models/memory.dart';
 import 'package:dementia_care/models/patient_mood.dart';
 
 class HomePage extends StatefulWidget {

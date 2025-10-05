@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import 'package:dementia_care/screens/auth/login.dart';
 import 'package:dementia_care/home.dart';
 
