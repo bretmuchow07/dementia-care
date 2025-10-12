@@ -118,7 +118,7 @@ class _MoodPageState extends State<MoodPage> {
 
     // If mood data is available, display it
     return Container(
-      height: 205.0,
+      height: 210.0,
       decoration: BoxDecoration(
         color: const Color(0xFF265F7E).withOpacity(0.1),
         borderRadius: BorderRadius.circular(20.0),

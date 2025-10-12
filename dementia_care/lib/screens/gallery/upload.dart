@@ -26,7 +26,7 @@ class _PreviewItem {
 
 class _UploadPreviewPageState extends State<UploadPreviewPage> {
   final ImagePicker _picker = ImagePicker();
-  final Uuid _uuid = Uuid();
+  final Uuid _uuid = const Uuid();
   final GeminiService _geminiService = GeminiService();
   List<_PreviewItem> _items = [];
   bool _isUploading = false;
@@ -468,7 +468,7 @@ class _UploadPreviewPageState extends State<UploadPreviewPage> {
                 left: 8,
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.green,
                     shape: BoxShape.circle,
                   ),

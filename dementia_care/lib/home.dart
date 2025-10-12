@@ -4,6 +4,8 @@ import 'package:dementia_care/screens/auth/auth_service.dart';
 import 'package:dementia_care/screens/auth/profile_view.dart';
 import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/widgets/memorycard.dart';
+import 'package:dementia_care/widgets/welcome_card.dart';
+import 'package:dementia_care/screens/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'widgets/bottomnav.dart';
 import 'package:dementia_care/services/profile.dart';
@@ -94,8 +96,8 @@ class _HomePageState extends State<HomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               ListTile(
-                            leading: const Icon(Icons.edit),
-                            title: const Text('My Profile'),
+                            leading: const Icon(Icons.person),
+                            title: const Text('View Profile'),
                             onTap: () {
                               Navigator.pop(context);
                               if (_profile != null) {
@@ -112,6 +114,38 @@ class _HomePageState extends State<HomePage> {
                               }
                             },
                           ),
+                              ListTile(
+                                leading: const Icon(Icons.settings),
+                                title: const Text('Settings'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const SettingsPage(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              const Divider(),
+                              ListTile(
+                                leading: const Icon(Icons.info),
+                                title: const Text('About'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  showAboutDialog(
+                                    context: context,
+                                    applicationName: 'Dementia Care',
+                                    applicationVersion: '1.0.0',
+                                    applicationLegalese: '© 2025 brets corner',
+                                    applicationIcon: Image.asset(
+                                      'assets/images/dementia_care.png',
+                                      width: 64,
+                                      height: 64,
+                                    ),
+                                  );
+                                },
+                              ),
                               ListTile(
                                 leading: const Icon(Icons.logout),
                                 title: const Text('Sign Out'),
@@ -261,10 +295,41 @@ class HomeScreenContent extends StatelessWidget {
     };
   }
 
+  Future<String?> _getLastMood() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return null;
+
+    final response = await Supabase.instance.client
+        .from('patient_mood')
+        .select('''
+          mood:mood_id (
+            name
+          )
+        ''')
+        .eq('user_id', user.id)
+        .order('logged_at', ascending: false)
+        .limit(1);
+
+    final List list = response as List;
+    if (list.isNotEmpty) {
+      final moodData = list.first['mood'];
+      return moodData?['name'] as String?;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, String>>(
-      future: _getUserInfo(),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: Future.wait([
+        _getUserInfo(),
+        shouldShowWelcomeCard(),
+        _getLastMood(),
+      ]).then((results) => {
+        'userInfo': results[0],
+        'showWelcome': results[1],
+        'lastMood': results[2],
+      }),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -273,15 +338,21 @@ class HomeScreenContent extends StatelessWidget {
           return const Center(child: Text('Failed to load user info.'));
         }
 
+        final userInfo = snapshot.data?['userInfo'] as Map<String, String>? ?? {};
+        final showWelcome = snapshot.data?['showWelcome'] as bool? ?? false;
+        final lastMood = snapshot.data?['lastMood'] as String?;
+
         final greeting = _getGreeting();
-        final userName = snapshot.data?['name'] ?? 'User';
-        final profilePicture = (snapshot.data?['picture']?.isNotEmpty ?? false)
-            ? snapshot.data!['picture']!
+        final userName = userInfo['name'] ?? 'User';
+        final profilePicture = (userInfo['picture']?.isNotEmpty ?? false)
+            ? userInfo['picture']!
             : "https://ui-avatars.com/api/?name=$userName&background=ccc&color=555&size=128";
 
         return SingleChildScrollView(
           child: Column(
             children: [
+              if (showWelcome)
+                WelcomeCard(lastMood: lastMood),
               Center(
                 child: SizedBox(
                   height: 200,

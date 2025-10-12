@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dementia_care/widgets/galleryview.dart';
 import 'package:dementia_care/widgets/cameracapture.dart';
+import 'package:dementia_care/widgets/memorycarousel.dart';
+import 'package:dementia_care/services/tts_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dementia_care/models/gallery.dart';
 import 'package:uuid/uuid.dart';
 import 'package:dementia_care/screens/gallery/upload.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dementia_care/models/memory.dart';
 
 class GalleryPage extends StatefulWidget {
@@ -20,14 +21,25 @@ class _GalleryPageState extends State<GalleryPage> {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
   final Uuid uuid = Uuid();
+  final TextToSpeechService _ttsService = TextToSpeechService();
   List<Gallery> _galleryImages = [];
   Map<String, List<Gallery>> _groupedImages = {};
   bool _isLoading = true;
+  bool _hasSpokenWelcome = false;
 
   @override
   void initState() {
     super.initState();
     _loadGalleryImages();
+    _ttsService.onMuteChanged = () {
+      if (mounted) setState(() {});
+    };
+  }
+
+  @override
+  void dispose() {
+    _ttsService.onMuteChanged = null;
+    super.dispose();
   }
 
   Future<void> _loadGalleryImages() async {
@@ -211,6 +223,16 @@ class _GalleryPageState extends State<GalleryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Speak welcome message when gallery loads for the first time
+    if (!_hasSpokenWelcome && !_isLoading && _galleryImages.isNotEmpty) {
+      _hasSpokenWelcome = true;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _ttsService.speak(
+          "You can view all your memories and look for something that brings you joy or helps you reflect on your emotional journey"
+        );
+      });
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
@@ -329,6 +351,37 @@ class _GalleryPageState extends State<GalleryPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // TTS Mute/Unmute Button
+          Container(
+            decoration: BoxDecoration(
+              color: _ttsService.isMuted ? Colors.grey[400] : const Color(0xFF1B5E7E),
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: (_ttsService.isMuted ? Colors.grey[400]! : const Color(0xFF1B5E7E)).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(
+                _ttsService.isMuted ? Icons.volume_off : Icons.volume_up,
+                color: Colors.white,
+              ),
+              onPressed: () async {
+                await _ttsService.toggleMute();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_ttsService.isMuted ? 'TTS muted' : 'TTS unmuted'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              tooltip: _ttsService.isMuted ? 'Unmute TTS' : 'Mute TTS',
+            ),
+          ),
+          const SizedBox(width: 12),
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1B5E7E),
@@ -399,11 +452,10 @@ class _GalleryPageState extends State<GalleryPage> {
     );
   }
 
-  // Updated memories section: uses MemoryGroup and carousel_slider
   Widget _buildMemoriesSection() {
     final memoryGroups = _groupedImages.entries.map((entry) {
       final imageUrls = entry.value.map((g) => g.imageUrl ?? '').where((s) => s.isNotEmpty).toList();
-      return MemoryGroup(title: entry.key, imageUrls: imageUrls);
+      return MemoryGroup(title: entry.key, imageUrls: imageUrls, date: entry.value.first.createdAt);
     }).where((mg) => mg.imageUrls.isNotEmpty).toList();
 
     // Fallback to recentImages if we don't have grouped memories
@@ -412,9 +464,15 @@ class _GalleryPageState extends State<GalleryPage> {
             MemoryGroup(
               title: 'Recent',
               imageUrls: _galleryImages.take(5).map((g) => g.imageUrl ?? '').where((s) => s.isNotEmpty).toList(),
+              date: _galleryImages.isNotEmpty ? _galleryImages.first.createdAt : null,
             )
           ]
         : memoryGroups;
+
+    // Only show carousel if we have groups with images
+    if (fallbackGroups.isEmpty || fallbackGroups.any((g) => g.imageUrls.isEmpty)) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -430,79 +488,7 @@ class _GalleryPageState extends State<GalleryPage> {
             ),
           ),
           const SizedBox(height: 16),
-          CarouselSlider(
-            options: CarouselOptions(
-              height: 180,
-              enlargeCenterPage: true,
-              enableInfiniteScroll: false,
-              viewportFraction: 0.8,
-            ),
-            items: fallbackGroups.map((group) {
-              final firstUrl = group.imageUrls.isNotEmpty ? group.imageUrls[0] : '';
-              return GestureDetector(
-                onTap: () {
-                  // Open gallery with all images from this group
-                  final items = group.imageUrls.map((u) => {'imageUrl': u}).toList();
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => GalleryView(
-                      items: items,
-                      fullscreen: true,
-                      initialIndex: 0,
-                    ),
-                  ));
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (firstUrl.isNotEmpty)
-                          Image.network(firstUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Container(color: Colors.grey[300]))
-                        else
-                          Container(color: Colors.grey[300]),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.45),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 16,
-                          bottom: 16,
-                          right: 16,
-                          child: Text(
-                            group.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 32),
+          MemoriesCarousel(groups: fallbackGroups),
         ],
       ),
     );

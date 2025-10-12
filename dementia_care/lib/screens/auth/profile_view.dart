@@ -1,15 +1,127 @@
 import 'package:flutter/material.dart';
 import 'package:dementia_care/models/profile.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'edit_profile.dart';
-import 'edit_account.dart'; 
+import 'edit_account.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends StatefulWidget {
   final Profile profile;
 
   const ProfileView({
     Key? key,
     required this.profile,
   }) : super(key: key);
+
+  @override
+  State<ProfileView> createState() => _ProfileViewState();
+}
+
+class _ProfileViewState extends State<ProfileView> {
+  late Profile _profile;
+  int _totalMoods = 0;
+  int _currentStreak = 0;
+  String _mostFrequentMood = 'None';
+  String _memberSince = 'Unknown';
+
+  @override
+  void initState() {
+    super.initState();
+    _profile = widget.profile;
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Get member since date
+      final userResponse = await Supabase.instance.client.auth.admin.getUserById(user.id);
+      if (userResponse.user?.createdAt != null) {
+        final createdDate = DateTime.parse(userResponse.user!.createdAt);
+        _memberSince = '${createdDate.day}/${createdDate.month}/${createdDate.year}';
+      }
+
+      // Get total moods logged
+      final moodResponse = await Supabase.instance.client
+          .from('patient_mood')
+          .select('id')
+          .eq('user_id', user.id);
+
+      _totalMoods = (moodResponse as List).length;
+
+      // Get current streak (consecutive days with mood entries)
+      final streakResponse = await Supabase.instance.client
+          .from('patient_mood')
+          .select('logged_at')
+          .eq('user_id', user.id)
+          .order('logged_at', ascending: false);
+
+      if (streakResponse.isNotEmpty) {
+        final dates = (streakResponse as List)
+            .map((e) => DateTime.parse(e['logged_at']))
+            .toList();
+
+        _currentStreak = _calculateStreak(dates);
+      }
+
+      // Get most frequent mood
+      final moodStatsResponse = await Supabase.instance.client
+          .from('patient_mood')
+          .select('''
+            mood:mood_id (
+              name
+            )
+          ''')
+          .eq('user_id', user.id);
+
+      if (moodStatsResponse.isNotEmpty) {
+        final moodCounts = <String, int>{};
+        for (final entry in moodStatsResponse) {
+          final moodName = entry['mood']?['name'] as String?;
+          if (moodName != null) {
+            moodCounts[moodName] = (moodCounts[moodName] ?? 0) + 1;
+          }
+        }
+
+        if (moodCounts.isNotEmpty) {
+          _mostFrequentMood = moodCounts.entries
+              .reduce((a, b) => a.value > b.value ? a : b)
+              .key;
+        }
+      }
+
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      print('Error loading profile data: $e');
+    }
+  }
+
+  int _calculateStreak(List<DateTime> dates) {
+    if (dates.isEmpty) return 0;
+
+    final today = DateTime.now();
+    final todayNormalized = DateTime(today.year, today.month, today.day);
+
+    int streak = 0;
+    DateTime currentDate = todayNormalized;
+
+    for (final date in dates) {
+      final dateNormalized = DateTime(date.year, date.month, date.day);
+
+      if (dateNormalized == currentDate) {
+        streak++;
+        currentDate = currentDate.subtract(const Duration(days: 1));
+      } else if (dateNormalized.isBefore(currentDate)) {
+        // Gap in streak
+        break;
+      }
+    }
+
+    return streak;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +226,10 @@ class ProfileView extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: profile.profilePicture != null && profile.profilePicture!.isNotEmpty
+                child: _profile.profilePicture != null && _profile.profilePicture!.isNotEmpty
                     ? ClipOval(
                         child: Image.network(
-                          profile.profilePicture!,
+                          _profile.profilePicture!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return _buildDefaultAvatar();
@@ -145,7 +257,7 @@ class ProfileView extends StatelessWidget {
           const SizedBox(height: 20),
 
           Text(
-            profile.fullName,
+            _profile.fullName,
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -235,7 +347,7 @@ class ProfileView extends StatelessWidget {
           // Name Field
           _buildDetailField(
             'Full Name', 
-            profile.fullName,
+            _profile.fullName,
             Icons.badge_outlined,
           ),
 
@@ -244,8 +356,53 @@ class ProfileView extends StatelessWidget {
           // Date of Birth Field
           _buildDetailField(
             'Date of Birth',
-            profile.dateOfBirth?.isNotEmpty == true ? profile.dateOfBirth! : 'Not specified',
+            _profile.dateOfBirth?.isNotEmpty == true ? _profile.dateOfBirth! : 'Not specified',
             Icons.cake_outlined,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Email Field (from auth)
+          _buildDetailField(
+            'Email',
+            Supabase.instance.client.auth.currentUser?.email ?? 'Not available',
+            Icons.email_outlined,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Member Since Field
+          _buildDetailField(
+            'Member Since',
+            _memberSince,
+            Icons.calendar_today_outlined,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Total Moods Logged
+          _buildDetailField(
+            'Total Moods Logged',
+            _totalMoods.toString(),
+            Icons.mood_outlined,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Current Streak
+          _buildDetailField(
+            'Current Streak',
+            '$_currentStreak ${_currentStreak == 1 ? 'day' : 'days'}',
+            Icons.local_fire_department_outlined,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Most Frequent Mood
+          _buildDetailField(
+            'Most Frequent Mood',
+            _mostFrequentMood,
+            Icons.trending_up_outlined,
           ),
 
           const SizedBox(height: 16),
@@ -253,7 +410,7 @@ class ProfileView extends StatelessWidget {
           // Address Field
           _buildDetailField(
             'Location',
-            profile.country?.isNotEmpty == true ? profile.country! : 'Not specified',
+            _profile.country?.isNotEmpty == true ? _profile.country! : 'Not specified',
             Icons.location_on_outlined,
           ),
         ],
@@ -339,7 +496,7 @@ class ProfileView extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => AboutMePage(profile: profile.toJson()),
+                    builder: (context) => AboutMePage(profile: _profile.toJson()),
                   ),
                 );
               },
@@ -372,7 +529,7 @@ class ProfileView extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => EditAccountPage(profile: profile),
+                    builder: (context) => EditAccountPage(profile: _profile),
                   ),
                 );
               },

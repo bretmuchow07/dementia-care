@@ -102,7 +102,12 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
   }
 
   Future<void> _cycleFlash() async {
-    final modes = [cam.FlashMode.off, cam.FlashMode.auto, cam.FlashMode.always, cam.FlashMode.torch];
+    final modes = [
+      cam.FlashMode.off,
+      cam.FlashMode.auto,
+      cam.FlashMode.always,
+      cam.FlashMode.torch
+    ];
     final nextIndex = (modes.indexOf(_flashMode) + 1) % modes.length;
     _flashMode = modes[nextIndex];
     try {
@@ -117,7 +122,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
 
   Future<void> _handleScaleUpdate(ScaleUpdateDetails details) async {
     if (_controller == null) return;
-    _currentScale = (_baseScale * details.scale).clamp(_minAvailableZoom, _maxAvailableZoom);
+    _currentScale = (_baseScale * details.scale).clamp(
+        _minAvailableZoom, _maxAvailableZoom);
     await _controller!.setZoomLevel(_currentScale);
   }
 
@@ -146,7 +152,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
       _captured.add(pickFile);
       if (mounted) setState(() {});
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Capture failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Capture failed: $e')));
     }
   }
 
@@ -157,7 +164,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
   }
 
   void _doneAndReturn() {
-    Navigator.of(context).pop<List<ip.XFile>>(_captured.isEmpty ? [] : List.from(_captured));
+    Navigator.of(context).pop<List<ip.XFile>>(
+        _captured.isEmpty ? [] : List.from(_captured));
   }
 
   Widget _buildTopBar() {
@@ -170,7 +178,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
         case cam.FlashMode.torch:
           return 'Torch';
         case cam.FlashMode.off:
-        return 'Off';
+          return 'Off';
       }
     }
 
@@ -181,7 +189,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
           children: [
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop<List<ip.XFile>>(_captured.isEmpty ? [] : List.from(_captured)),
+              onPressed: () =>
+                  Navigator.of(context).pop<List<ip.XFile>>(
+                      _captured.isEmpty ? [] : List.from(_captured)),
             ),
             const Spacer(),
             if (_cameras.length > 1)
@@ -218,9 +228,11 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white, size: 28),
+                    const Icon(
+                        Icons.check_circle, color: Colors.white, size: 28),
                     const SizedBox(height: 4),
-                    Text('${_captured.length}', style: const TextStyle(color: Colors.white)),
+                    Text('${_captured.length}',
+                        style: const TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
@@ -235,7 +247,8 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
                 color: Colors.white,
                 border: Border.all(color: Colors.grey.shade300, width: 4),
               ),
-              child: const Center(child: Icon(Icons.camera_alt, size: 30, color: Color(0xFF1B5E7E))),
+              child: const Center(child: Icon(
+                  Icons.camera_alt, size: 30, color: Color(0xFF1B5E7E))),
             ),
           ),
         ],
@@ -278,8 +291,10 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
                   onTap: () => _removeCapturedAt(i),
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
-                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, color: Colors.black54),
+                    child: const Icon(
+                        Icons.close, size: 14, color: Colors.white),
                   ),
                 ),
               ),
@@ -315,50 +330,28 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
             onScaleUpdate: _handleScaleUpdate,
             child: _controller != null && _controller!.value.isInitialized
                 ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapDown: (d) => _onViewFinderTap(d, constraints),
-                        child: cam.CameraPreview(_controller!),
-                      );
-                    },
-                  )
-                : const Center(child: Text('Camera not available', style: TextStyle(color: Colors.white))),
+              builder: (context, constraints) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (d) => _onViewFinderTap(d, constraints),
+                  child: cam.CameraPreview(_controller!),
+                );
+              },
+            )
+                : const Center(child: Text(
+                'Camera not available', style: TextStyle(color: Colors.white))),
           ),
           Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
-          Positioned(left: 0, right: 0, bottom: 120, child: Center(child: _buildCaptureControl())),
-          Positioned(left: 0, right: 0, bottom: 0, child: Column(children: [_buildCapturedStrip(), const SizedBox(height: 4), _bottomActionRow()]))
+          Positioned(left: 0,
+              right: 0,
+              bottom: 120,
+              child: Center(child: _buildCaptureControl())),
+          Positioned(left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                  children: [_buildCapturedStrip(), const SizedBox(height: 4)]))
         ],
-      ),
-    );
-  }
-
-  Widget _bottomActionRow() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop<List<ip.XFile>>([]),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.white24),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Cancel'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _captured.isEmpty ? null : _doneAndReturn,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E7E)),
-                child: Text(_captured.isEmpty ? 'Take photo' : 'Done (${_captured.length})'),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

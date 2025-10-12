@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:dementia_care/services/tts_service.dart';
 
 class GalleryView extends StatefulWidget {
   final List<Map<String, dynamic>> items;
@@ -26,6 +27,8 @@ class GalleryViewState extends State<GalleryView> {
   late List<Map<String, dynamic>> _galleryItems;
   late bool _loading;
   PageController? _pageController;
+  final TextToSpeechService _ttsService = TextToSpeechService();
+  int _currentPage = 0;
 
   // This method allows parent widgets to add images (kept for compatibility)
   void addImages(List<XFile> images) {
@@ -39,8 +42,20 @@ class GalleryViewState extends State<GalleryView> {
     super.initState();
     _galleryItems = List<Map<String, dynamic>>.from(widget.items);
     _loading = widget.loading;
+    _currentPage = widget.initialIndex ?? 0;
+    
     if (widget.fullscreen) {
-      _pageController = PageController(initialPage: widget.initialIndex ?? 0);
+      _pageController = PageController(initialPage: _currentPage);
+      _pageController?.addListener(() {
+        final page = _pageController?.page?.round() ?? 0;
+        if (page != _currentPage) {
+          setState(() {
+            _currentPage = page;
+          });
+          // Stop any ongoing speech when page changes
+          _ttsService.stop();
+        }
+      });
     }
   }
 
@@ -65,10 +80,21 @@ class GalleryViewState extends State<GalleryView> {
 
   @override
   void dispose() {
+    _ttsService.stop();
     _pageController?.dispose();
     super.dispose();
   }
 
+  void _playDescription() {
+    if (_currentPage < _galleryItems.length) {
+      final item = _galleryItems[_currentPage];
+      final description = item['description'] ?? '';
+      
+      if (description.isNotEmpty) {
+        _ttsService.speak(description);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,21 +111,75 @@ class GalleryViewState extends State<GalleryView> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () {
+              _ttsService.stop();
+              Navigator.of(context).pop();
+            },
           ),
+          actions: [
+            // TTS Play Button
+            IconButton(
+              icon: const Icon(Icons.volume_up, color: Colors.white),
+              onPressed: _currentPage < _galleryItems.length &&
+                      (_galleryItems[_currentPage]['description'] ?? '').isNotEmpty
+                  ? _playDescription
+                  : null,
+              tooltip: "Read Description",
+            ),
+          ],
         ),
         body: urls.isEmpty
             ? const Center(child: Text('No photos.', style: TextStyle(color: Colors.white)))
-            : PhotoViewGallery.builder(
-                pageController: _pageController,
-                itemCount: urls.length,
-                builder: (context, index) => PhotoViewGalleryPageOptions(
-                  imageProvider: NetworkImage(urls[index]),
-                  initialScale: PhotoViewComputedScale.contained,
-                  heroAttributes: PhotoViewHeroAttributes(tag: urls[index]),
-                ),
-                loadingBuilder: (context, event) => const Center(child: CircularProgressIndicator()),
+            : Stack(
+                children: [
+                  PhotoViewGallery.builder(
+                    pageController: _pageController,
+                    itemCount: urls.length,
+                    builder: (context, index) => PhotoViewGalleryPageOptions(
+                      imageProvider: NetworkImage(urls[index]),
+                      initialScale: PhotoViewComputedScale.contained,
+                      heroAttributes: PhotoViewHeroAttributes(tag: urls[index]),
+                    ),
+                    loadingBuilder: (context, event) => 
+                        const Center(child: CircularProgressIndicator()),
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentPage = index;
+                      });
+                      _ttsService.stop();
+                    },
+                  ),
+                  // Description overlay at bottom
+                  if (_currentPage < _galleryItems.length &&
+                      (_galleryItems[_currentPage]['description'] ?? '').isNotEmpty)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.8),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          _galleryItems[_currentPage]['description'] ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
       );
     }
@@ -121,6 +201,8 @@ class GalleryViewState extends State<GalleryView> {
       itemBuilder: (context, index) {
         final item = _galleryItems[index];
         final imageUrl = item['image_url'] ?? item['imageUrl'] ?? '';
+        final hasDescription = (item['description'] ?? '').isNotEmpty;
+        
         return GestureDetector(
           onTap: () {
             if (imageUrl.isNotEmpty) {
@@ -134,11 +216,34 @@ class GalleryViewState extends State<GalleryView> {
               ));
             }
           },
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                Container(color: Colors.grey[300]),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Container(color: Colors.grey[300]),
+              ),
+              // Show indicator if image has description
+              if (hasDescription)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.description,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },

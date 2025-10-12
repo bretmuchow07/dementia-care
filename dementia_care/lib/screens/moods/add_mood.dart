@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dementia_care/models/mood.dart';
 import 'package:dementia_care/models/patient_mood.dart';
+import 'package:dementia_care/services/tts_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AddMoodScreen extends StatefulWidget {
@@ -19,6 +20,8 @@ class AddMoodScreen extends StatefulWidget {
 }
 
 class _AddMoodScreenState extends State<AddMoodScreen> {
+  late final TextToSpeechService ttsService = TextToSpeechService();
+
   Mood? selectedMood;
   Set<String> selectedFactors = {};
   final TextEditingController otherFactorsController = TextEditingController();
@@ -38,6 +41,7 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
   void initState() {
     super.initState();
     _fetchMoods();
+    ttsService.onStateChanged = () => setState(() {});
   }
 
   Future<void> _fetchMoods() async {
@@ -129,6 +133,7 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
   @override
   void dispose() {
     otherFactorsController.dispose();
+    ttsService.onStateChanged = null;
     super.dispose();
   }
 
@@ -152,6 +157,18 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(ttsService.ttsState == TtsState.playing ? Icons.stop : Icons.play_arrow),
+            onPressed: () {
+              if (ttsService.ttsState == TtsState.playing) {
+                ttsService.stop();
+              } else {
+                ttsService.speak("How are you feeling today? What might be influencing your mood?");
+              }
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

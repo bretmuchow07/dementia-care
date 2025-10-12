@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dementia_care/models/memory.dart';
 import 'package:dementia_care/widgets/galleryview.dart';
+import 'package:dementia_care/widgets/memorycarousel.dart';
 
 class MemoryCard extends StatefulWidget {
   final String imageUrl;
@@ -22,6 +23,7 @@ class MemoryCard extends StatefulWidget {
 class _MemoryCardState extends State<MemoryCard> {
   bool _isLoaded = false;
   ImageStream? _imageStream;
+  ImageStreamListener? _imageStreamListener;
 
   @override
   void initState() {
@@ -58,9 +60,17 @@ class _MemoryCardState extends State<MemoryCard> {
     _imageStream!.addListener(listener);
   }
 
+ void _cleanup() {
+    if (_imageStream != null && _imageStreamListener != null) {
+      _imageStream!.removeListener(_imageStreamListener!);
+      _imageStream = null;
+      _imageStreamListener = null;
+    }
+  }
+
   @override
   void dispose() {
-    _imageStream?.removeListener(ImageStreamListener((_, __) {}));
+    _cleanup();
     super.dispose();
   }
 
@@ -178,13 +188,11 @@ class MemoryCardList extends StatelessWidget {
                 imageUrl: firstUrl,
                 title: group.title,
                 onTap: () {
-                  // Open gallery with all images from this group
-                  final items = group.imageUrls.map((u) => {'imageUrl': u}).toList();
+                  // Open memory story viewer with all images from this group
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => GalleryView(
-                        items: items,
-                        fullscreen: true,
+                      builder: (_) => MemoryStoryViewer(
+                        groups: [group],
                         initialIndex: 0,
                       ),
                     ),
