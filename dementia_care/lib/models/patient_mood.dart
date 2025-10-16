@@ -25,7 +25,7 @@ class PatientMood {
       userId: json['user_id'] as String?,
       description: json['description'] as String?,
       // Handle nested mood data if present
-      mood: json['mood'] != null 
+      mood: json['mood'] != null
           ? Mood.fromJson(json['mood'] as Map<String, dynamic>)
           : null,
     );

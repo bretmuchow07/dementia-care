@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart' as cam;
 import 'package:image_picker/image_picker.dart' as ip;
+import 'package:dementia_care/widgets/camera_controls.dart';
+import 'package:dementia_care/widgets/camera_capture_button.dart';
 
 class CameraCapturePage extends StatefulWidget {
   const CameraCapturePage({Key? key}) : super(key: key);
@@ -22,6 +24,9 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
   double _minAvailableZoom = 1.0;
   double _maxAvailableZoom = 1.0;
   cam.FlashMode _flashMode = cam.FlashMode.off;
+  bool _showGrid = false;
+  int _timerSeconds = 0;
+  bool _isTakingPicture = false;
 
   // Captured images returned as image_picker.XFile (compatible with UploadPreviewPage)
   final List<ip.XFile> _captured = [];
@@ -143,17 +148,60 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
 
   Future<void> _takePicture() async {
     if (_controller == null || !_controller!.value.isInitialized) return;
-    if (_controller!.value.isTakingPicture) return;
+    if (_isTakingPicture) return;
+
+    setState(() {
+      _isTakingPicture = true;
+    });
 
     try {
+      // Handle timer countdown
+      if (_timerSeconds > 0) {
+        for (int i = _timerSeconds; i > 0; i--) {
+          // Show countdown (you could add a countdown overlay here)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$i'),
+                duration: const Duration(seconds: 1),
+                backgroundColor: Colors.black.withOpacity(0.7),
+              ),
+            );
+          }
+          await Future.delayed(const Duration(seconds: 1));
+        }
+      }
+
       final cam.XFile camFile = await _controller!.takePicture();
+
+      // Add haptic feedback (if available)
+      // HapticFeedback.mediumImpact();
+
       // Convert camera.XFile -> image_picker.XFile (path-based) so UploadPreviewPage accepts it
       final ip.XFile pickFile = ip.XFile(camFile.path);
       _captured.add(pickFile);
-      if (mounted) setState(() {});
+
+      // Show captured image briefly
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo captured!'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Capture failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Capture failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTakingPicture = false;
+        });
+      }
     }
   }
 
@@ -169,87 +217,66 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
   }
 
   Widget _buildTopBar() {
-    String flashLabel() {
-      switch (_flashMode) {
-        case cam.FlashMode.auto:
-          return 'Auto';
-        case cam.FlashMode.always:
-          return 'On';
-        case cam.FlashMode.torch:
-          return 'Torch';
-        case cam.FlashMode.off:
-          return 'Off';
-      }
-    }
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () =>
-                  Navigator.of(context).pop<List<ip.XFile>>(
-                      _captured.isEmpty ? [] : List.from(_captured)),
-            ),
-            const Spacer(),
-            if (_cameras.length > 1)
-              IconButton(
-                icon: const Icon(Icons.cameraswitch, color: Colors.white),
-                onPressed: _switchCamera,
-              ),
-            TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
-              onPressed: _cycleFlash,
-              icon: const Icon(Icons.flash_on),
-              label: Text(flashLabel()),
-            ),
-          ],
-        ),
-      ),
+    return CameraControls(
+      flashMode: _flashMode,
+      onFlashChanged: (mode) {
+        setState(() {
+          _flashMode = mode;
+        });
+        _controller?.setFlashMode(mode);
+      },
+      hasMultipleCameras: _cameras.length > 1,
+      onSwitchCamera: _switchCamera,
+      currentZoom: _currentScale,
+      minZoom: _minAvailableZoom,
+      maxZoom: _maxAvailableZoom,
+      onZoomChanged: (zoom) {
+        setState(() {
+          _currentScale = zoom;
+        });
+        _controller?.setZoomLevel(zoom);
+      },
+      showGrid: _showGrid,
+      onToggleGrid: () {
+        setState(() {
+          _showGrid = !_showGrid;
+        });
+      },
+      timerSeconds: _timerSeconds,
+      onTimerChanged: (seconds) {
+        setState(() {
+          _timerSeconds = seconds;
+        });
+      },
     );
   }
 
   Widget _buildCaptureControl() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 22.0),
+      padding: const EdgeInsets.only(bottom: 40.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (_captured.isNotEmpty)
             GestureDetector(
-              onTap: () {
-                // show gallery preview of captured images? keep simple: open upload directly
-                _doneAndReturn();
-              },
+              onTap: _doneAndReturn,
               child: Container(
-                margin: const EdgeInsets.only(right: 16),
+                margin: const EdgeInsets.only(right: 20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
-                        Icons.check_circle, color: Colors.white, size: 28),
+                        Icons.check_circle, color: Colors.white, size: 32),
                     const SizedBox(height: 4),
                     Text('${_captured.length}',
-                        style: const TextStyle(color: Colors.white)),
+                        style: const TextStyle(color: Colors.white, fontSize: 12)),
                   ],
                 ),
               ),
             ),
-          GestureDetector(
-            onTap: _takePicture,
-            child: Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                border: Border.all(color: Colors.grey.shade300, width: 4),
-              ),
-              child: const Center(child: Icon(
-                  Icons.camera_alt, size: 30, color: Color(0xFF1B5E7E))),
-            ),
+          CameraCaptureButton(
+            onPressed: _takePicture,
+            isEnabled: !_isTakingPicture && _controller?.value.isInitialized == true,
           ),
         ],
       ),
@@ -325,34 +352,103 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Camera preview with grid overlay
           GestureDetector(
             onScaleStart: _handleScaleStart,
             onScaleUpdate: _handleScaleUpdate,
             child: _controller != null && _controller!.value.isInitialized
                 ? LayoutBuilder(
               builder: (context, constraints) {
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapDown: (d) => _onViewFinderTap(d, constraints),
-                  child: cam.CameraPreview(_controller!),
+                return Stack(
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: (d) => _onViewFinderTap(d, constraints),
+                      child: cam.CameraPreview(_controller!),
+                    ),
+                    // Grid overlay
+                    if (_showGrid) _buildGridOverlay(),
+                    // Focus indicator (could be added here)
+                  ],
                 );
               },
             )
                 : const Center(child: Text(
                 'Camera not available', style: TextStyle(color: Colors.white))),
           ),
+
+          // Top controls
           Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
-          Positioned(left: 0,
-              right: 0,
-              bottom: 120,
-              child: Center(child: _buildCaptureControl())),
-          Positioned(left: 0,
-              right: 0,
-              bottom: 0,
-              child: Column(
-                  children: [_buildCapturedStrip(), const SizedBox(height: 4)]))
+
+          // Capture button (centered at bottom)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 120,
+            child: Center(child: _buildCaptureControl()),
+          ),
+
+          // Captured images strip
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Column(
+              children: [_buildCapturedStrip(), const SizedBox(height: 4)],
+            ),
+          ),
+
+          // Loading indicator during capture
+          if (_isTakingPicture)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
+
+  Widget _buildGridOverlay() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return CustomPaint(
+          size: Size(constraints.maxWidth, constraints.maxHeight),
+          painter: GridPainter(),
+        );
+      },
+    );
+  }
+}
+
+class GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..strokeWidth = 1;
+
+    // Rule of thirds grid
+    final thirdWidth = size.width / 3;
+    final thirdHeight = size.height / 3;
+
+    // Vertical lines
+    for (int i = 1; i < 3; i++) {
+      final x = thirdWidth * i;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+
+    // Horizontal lines
+    for (int i = 1; i < 3; i++) {
+      final y = thirdHeight * i;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

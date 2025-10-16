@@ -6,6 +6,8 @@ import 'package:dementia_care/screens/moods/moodcard.dart';
 import 'package:dementia_care/screens/moods/add_mood.dart';
 import 'package:dementia_care/screens/moods/mood_history.dart';
 import 'package:dementia_care/models/patient_mood.dart';
+//import 'package:dementia_care/widgets/mood_analytics_chart.dart';
+import 'package:dementia_care/widgets/mood_memory_section.dart';
 
 class MoodPage extends StatefulWidget {
   const MoodPage({super.key});
@@ -18,6 +20,7 @@ class _MoodPageState extends State<MoodPage> {
   PatientMood? _latestMood;
   bool _loading = true;
   String? _errorMessage;
+  String? _selectedMoodFilter;
 
   @override
   void initState() {
@@ -41,9 +44,8 @@ class _MoodPageState extends State<MoodPage> {
         return;
       }
 
-      // Fixed table name and added mood relation
       final response = await Supabase.instance.client
-          .from('patient_mood') // Fixed table name (was 'patient_moods')
+          .from('patient_mood') 
           .select('''
             id,
             mood_id,
@@ -57,7 +59,7 @@ class _MoodPageState extends State<MoodPage> {
               description
             )
           ''')
-          .eq('user_id', user.id) // Fixed column name (was 'patient_id')
+          .eq('user_id', user.id) 
           .order('logged_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -351,9 +353,33 @@ class _MoodPageState extends State<MoodPage> {
 
                           const SizedBox(height: 20),
 
-                          // Mood Board
+                          // Mood Analytics Chart
+                          // const Padding(
+                          //   padding: EdgeInsets.only(top: 20.0, bottom: 10.0),
+                          //   child: Align(
+                          //     alignment: Alignment.centerLeft,
+                          //     child: Text(
+                          //       'Mood Analytics',
+                          //       style: TextStyle(
+                          //         color: Color(0xFF265F7E),
+                          //         fontWeight: FontWeight.bold,
+                          //         fontSize: 25,
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
+
+                          // MoodAnalyticsChart(
+                          //   onMoodSelected: (mood) {
+                          //     setState(() {
+                          //       _selectedMoodFilter = mood;
+                          //     });
+                          //   },
+                          // ),
+
+                          // Mood Memory Section
                           const Padding(
-                            padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
+                            padding: EdgeInsets.only(top: 20.0, bottom: 10.0),
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
@@ -367,28 +393,26 @@ class _MoodPageState extends State<MoodPage> {
                             ),
                           ),
 
-                          // Placeholder for mood board content
-                          Container(
-                            height: 200,
-                            width: cardWidth,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF5F5F5),
-                              borderRadius: BorderRadius.circular(20.0),
-                              border: Border.all(
-                                color: const Color(0xFFE0E0E0),
-                                width: 1,
-                              ),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Mood Board Coming Soon...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF666666),
+                          MoodMemorySection(filterMood: _selectedMoodFilter),
+
+                          // Clear filter button
+                          if (_selectedMoodFilter != null)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedMoodFilter = null;
+                                  });
+                                },
+                                icon: const Icon(Icons.clear),
+                                label: Text('Clear filter: $_selectedMoodFilter'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[300],
+                                  foregroundColor: Colors.black87,
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),

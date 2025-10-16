@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dementia_care/models/mood.dart';
 import 'package:dementia_care/models/patient_mood.dart';
 import 'package:dementia_care/services/tts_service.dart';
+import 'package:dementia_care/widgets/success_dialog.dart';
 import 'package:uuid/uuid.dart';
 
 class AddMoodScreen extends StatefulWidget {
@@ -36,6 +37,36 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
     'Social Interaction': Icons.people,
     'Environment': Icons.eco,
   };
+
+  final Map<String, String> moodAffirmations = {
+    'Happy': "You're feeling happy today, that's wonderful!",
+    'Sad': "It's okay to feel sad, take a deep breath",
+    'Anxious': "It's okay to feel anxious, take a deep breath",
+    'Calm': "You're feeling calm and centered, that's beautiful",
+    'Excited': "Your excitement is wonderful to see!",
+    'Angry': "It's normal to feel angry, you're processing your emotions",
+    'Tired': "You're feeling tired, rest is important",
+    'Content': "Feeling content is a wonderful state",
+    'Frustrated': "Frustration is temporary, you're capable",
+    'Peaceful': "Peaceful moments are precious",
+  };
+
+  final Map<String, String> moodEmojis = {
+    'Happy': '😊',
+    'Sad': '😢',
+    'Anxious': '😰',
+    'Calm': '😌',
+    'Excited': '🤩',
+    'Angry': '😠',
+    'Tired': '😴',
+    'Content': '🙂',
+    'Frustrated': '😤',
+    'Peaceful': '🕊️',
+  };
+
+  String _getMoodEmoji(String moodName) {
+    return moodEmojis[moodName] ?? '😐';
+  }
 
   @override
   void initState() {
@@ -110,14 +141,20 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
 
       widget.onMoodSaved(patientMood);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mood logged successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context); // Go back
+      // Show success dialog with animation and TTS
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => SuccessDialog(
+            moodName: selectedMood!.name,
+            emoji: _getMoodEmoji(selectedMood!.name),
+            onDismiss: () {
+              Navigator.pop(context); // Go back after dialog dismisses
+            },
+          ),
+        );
+      }
 
     } catch (error) {
       Navigator.pop(context); // Close loading
@@ -288,8 +325,12 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
         setState(() {
           selectedMood = mood;
         });
+        // Play TTS when mood is selected
+        final affirmation = moodAffirmations[mood.name] ?? "You're feeling ${mood.name.toLowerCase()}";
+        ttsService.speak(affirmation);
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1E5A96) : Colors.white,
@@ -297,13 +338,33 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
           border: Border.all(
             color: isSelected ? const Color(0xFF1E5A96) : Colors.grey[300]!,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF1E5A96).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
         ),
-        child: Text(
-          mood.name,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              mood.name,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.volume_up,
+              size: 16,
+              color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey[400],
+            ),
+          ],
         ),
       ),
     );
