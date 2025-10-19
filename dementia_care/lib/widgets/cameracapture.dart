@@ -106,6 +106,7 @@ class _CameraCapturePageState extends State<CameraCapturePage> with WidgetsBindi
     _initController(_cameras[_selectedCameraIdx]);
   }
 
+  // ignore: unused_element
   Future<void> _cycleFlash() async {
     final modes = [
       cam.FlashMode.off,

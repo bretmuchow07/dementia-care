@@ -9,6 +9,8 @@ class GalleryView extends StatefulWidget {
   final bool loading;
   final bool fullscreen;
   final int? initialIndex;
+  final Function(int, String)? onCaptionUpdate;
+  final Function(int)? onDelete;
 
   const GalleryView({
     Key? key,
@@ -16,6 +18,8 @@ class GalleryView extends StatefulWidget {
     this.loading = false,
     this.fullscreen = false,
     this.initialIndex,
+    this.onCaptionUpdate,
+    this.onDelete,
   }) : super(key: key);
 
   @override
@@ -30,7 +34,6 @@ class GalleryViewState extends State<GalleryView> {
   final TextToSpeechService _ttsService = TextToSpeechService();
   int _currentPage = 0;
 
-  // This method allows parent widgets to add images (kept for compatibility)
   void addImages(List<XFile> images) {
     setState(() {
       _images.addAll(images);
@@ -52,7 +55,6 @@ class GalleryViewState extends State<GalleryView> {
           setState(() {
             _currentPage = page;
           });
-          // Stop any ongoing speech when page changes
           _ttsService.stop();
         }
       });
@@ -72,7 +74,6 @@ class GalleryViewState extends State<GalleryView> {
         _loading = widget.loading;
       });
     }
-    // update page controller if initialIndex changed while fullscreen
     if (widget.fullscreen && widget.initialIndex != oldWidget.initialIndex) {
       _pageController?.jumpToPage(widget.initialIndex ?? 0);
     }
@@ -94,6 +95,134 @@ class GalleryViewState extends State<GalleryView> {
         _ttsService.speak(description);
       }
     }
+  }
+
+  void _showDescriptionDialog() {
+    if (_currentPage < _galleryItems.length) {
+      final item = _galleryItems[_currentPage];
+      final description = item['description'] ?? 'No description';
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Image Description'),
+          content: Text(description),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _editCaption() {
+    if (_currentPage < _galleryItems.length) {
+      final currentCaption = _galleryItems[_currentPage]['description'] ?? '';
+      final controller = TextEditingController(text: currentCaption);
+      
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            top: 16,
+            left: 16,
+            right: 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Edit Caption',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  hintText: 'Enter caption',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 4,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _galleryItems[_currentPage]['description'] = controller.text;
+                      });
+                      widget.onCaptionUpdate?.call(_currentPage, controller.text);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _downloadImage() {
+    if (_currentPage < _galleryItems.length) {
+      final imageUrl = _galleryItems[_currentPage]['image_url'] ?? 
+                      _galleryItems[_currentPage]['imageUrl'] ?? '';
+      // Implement download logic here
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Downloading image...')),
+      );
+    }
+  }
+
+  void _shareImage() {
+    if (_currentPage < _galleryItems.length) {
+      final imageUrl = _galleryItems[_currentPage]['image_url'] ?? 
+                      _galleryItems[_currentPage]['imageUrl'] ?? '';
+      // Implement share logic here
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sharing image...')),
+      );
+    }
+  }
+
+  void _deleteImage() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Image'),
+        content: const Text('Are you sure you want to delete this image?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onDelete?.call(_currentPage);
+              setState(() {
+                _galleryItems.removeAt(_currentPage);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -118,7 +247,6 @@ class GalleryViewState extends State<GalleryView> {
             },
           ),
           actions: [
-            // TTS Play Button
             IconButton(
               icon: const Icon(Icons.volume_up, color: Colors.white),
               onPressed: _currentPage < _galleryItems.length &&
@@ -150,35 +278,67 @@ class GalleryViewState extends State<GalleryView> {
                       _ttsService.stop();
                     },
                   ),
-                  // Description overlay at bottom
-                  if (_currentPage < _galleryItems.length &&
-                      (_galleryItems[_currentPage]['description'] ?? '').isNotEmpty)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.8),
-                              Colors.transparent,
-                            ],
+                  // Bottom action bar
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        border: Border(
+                          top: BorderSide(
+                            color: Colors.grey[800]!,
+                            width: 1,
                           ),
-                        ),
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          _galleryItems[_currentPage]['description'] ?? '',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Download button
+                          IconButton(
+                            icon: const Icon(Icons.download, color: Colors.white),
+                            onPressed: _downloadImage,
+                            tooltip: 'Download',
+                          ),
+                          // Info button
+                          IconButton(
+                            icon: const Icon(Icons.info_outline, color: Colors.white),
+                            onPressed: _showDescriptionDialog,
+                            tooltip: 'Info',
+                          ),
+                          // Share button
+                          IconButton(
+                            icon: const Icon(Icons.share, color: Colors.white),
+                            onPressed: _shareImage,
+                            tooltip: 'Share',
+                          ),
+                          // Delete button
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.white),
+                            onPressed: _deleteImage,
+                            tooltip: 'Delete',
+                          ),
+                          // More options button
+                          PopupMenuButton(
+                            color: Colors.grey[900],
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                child: const Text(
+                                  'Edit Caption',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                onTap: _editCaption,
+                              ),
+                            ],
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
+                  ),
                 ],
               ),
       );
@@ -206,12 +366,13 @@ class GalleryViewState extends State<GalleryView> {
         return GestureDetector(
           onTap: () {
             if (imageUrl.isNotEmpty) {
-              // Open a fullscreen GalleryView starting at this index
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => GalleryView(
                   items: _galleryItems,
                   fullscreen: true,
                   initialIndex: index,
+                  onCaptionUpdate: widget.onCaptionUpdate,
+                  onDelete: widget.onDelete,
                 ),
               ));
             }
@@ -225,7 +386,6 @@ class GalleryViewState extends State<GalleryView> {
                 errorBuilder: (context, error, stackTrace) =>
                     Container(color: Colors.grey[300]),
               ),
-              // Show indicator if image has description
               if (hasDescription)
                 Positioned(
                   top: 4,

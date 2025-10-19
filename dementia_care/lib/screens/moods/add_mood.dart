@@ -52,16 +52,32 @@ class _AddMoodScreenState extends State<AddMoodScreen> {
   };
 
   final Map<String, String> moodEmojis = {
+    // Map of mood name to a representative emoji string.
+    // Keys should match the mood.name values used by the app (case-sensitive).
     'Happy': '😊',
-    'Sad': '😢',
-    'Anxious': '😰',
-    'Calm': '😌',
+    'Joyful': '😁',
     'Excited': '🤩',
-    'Angry': '😠',
-    'Tired': '😴',
-    'Content': '🙂',
-    'Frustrated': '😤',
+    'Calm': '🌿',
     'Peaceful': '🕊️',
+    'Relaxed': '😌',
+    'Neutral': '😐',
+    'Okay': '🙂',
+    'Sad': '😔',
+    'Down': '😞',
+    'Upset': '😢',
+    'Angry': '😠',
+    'Frustrated': '😣',
+    'Annoyed': '😒',
+    'Confused': '🤔',
+    'Lost': '😕',
+    'Anxious': '😟',
+    'Worried': '😰',
+    'Tired': '😴',
+    'Exhausted': '🥱',
+    'Energetic': '⚡',
+    'Active': '🏃‍♂️',
+    'Content': '😊',
+    // fallback handled by _getMoodEmoji
   };
 
   String _getMoodEmoji(String moodName) {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:dementia_care/services/tts_service.dart';
 
 class SuccessDialog extends StatefulWidget {
@@ -55,12 +54,8 @@ class _SuccessDialogState extends State<SuccessDialog> with TickerProviderStateM
 
     _animationController.forward();
 
-    // Auto-dismiss after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        _dismiss();
-      }
-    });
+    // No auto-dismiss: user must close via the button. This prevents the dialog
+    // from disappearing before the user can see the emoji/animation.
 
     // Play TTS after animation starts
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -88,20 +83,20 @@ class _SuccessDialogState extends State<SuccessDialog> with TickerProviderStateM
 
   String _getMoodAffirmation(String mood) {
     final affirmations = {
-      'Happy': "You're feeling happy today, that's wonderful! Keep that positive energy flowing.",
-      'Sad': "It's okay to feel sad sometimes. Remember that brighter days are ahead.",
-      'Anxious': "It's okay to feel anxious, take a deep breath. You're doing your best.",
-      'Calm': "You're feeling calm and centered. That's a beautiful state of mind.",
-      'Excited': "Your excitement is contagious! Enjoy this moment of joy.",
-      'Angry': "It's normal to feel angry. Take a moment to breathe and process your feelings.",
-      'Tired': "You're feeling tired, that's okay. Rest is important for your well-being.",
-      'Content': "Feeling content is a wonderful place to be. Cherish this peaceful moment.",
-      'Frustrated': "Frustration is temporary. You're capable of overcoming this challenge.",
-      'Peaceful': "Peaceful moments like this are precious. Enjoy the tranquility.",
-      'Neutral': "Every mood has its place. You're exactly where you need to be right now.",
+      'happy': "You're feeling happy today, that's wonderful! Keep that positive energy flowing.",
+      'sad': "It's okay to feel sad sometimes. Remember that brighter days are ahead.",
+      'anxious': "It's okay to feel anxious, take a deep breath. You're doing your best.",
+      'calm': "You're feeling calm and centered. That's a beautiful state of mind.",
+      'excited': "Your excitement is contagious! Enjoy this moment of joy.",
+      'angry': "It's normal to feel angry. Take a moment to breathe and process your feelings.",
+      'tired': "You're feeling tired, that's okay. Rest is important for your well-being.",
+      'content': "Feeling content is a wonderful place to be. Cherish this peaceful moment.",
+      'frustrated': "Frustration is temporary. You're capable of overcoming this challenge.",
+      'peaceful': "Peaceful moments like this are precious. Enjoy the tranquility.",
+      'neutral': "Every mood has its place. You're exactly where you need to be right now.",
     };
 
-    return affirmations[mood.toLowerCase()] ?? affirmations['Neutral']!;
+    return affirmations[mood.toLowerCase()] ?? affirmations['neutral']!;
   }
 
   void _dismiss() {
@@ -148,19 +143,20 @@ class _SuccessDialogState extends State<SuccessDialog> with TickerProviderStateM
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Lottie Animation
-                    SizedBox(
-                      height: 120,
-                      width: 120,
-                      child: Lottie.asset(
-                        'assets/animations/success.json', // You'll need to add this asset
-                        fit: BoxFit.contain,
-                        repeat: false,
-                        onLoaded: (composition) {
-                          // Animation will play once
-                        },
-                      ),
-                    ),
+                    // Success Icon
+                     Container(
+                       height: 120,
+                       width: 120,
+                       decoration: BoxDecoration(
+                         color: Colors.green[100],
+                         shape: BoxShape.circle,
+                       ),
+                       child: const Icon(
+                         Icons.check_circle,
+                         size: 80,
+                         color: Colors.green,
+                       ),
+                     ),
 
                     const SizedBox(height: 16),
 
@@ -177,22 +173,36 @@ class _SuccessDialogState extends State<SuccessDialog> with TickerProviderStateM
 
                     const SizedBox(height: 8),
 
-                    // Mood display
+                    // Mood display: emoji on the left (scaled reliably), mood name on the right
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.emoji != null)
-                          Text(
-                            widget.emoji!,
-                            style: const TextStyle(fontSize: 24),
+                          Container(
+                            width: 48,
+                            height: 48,
+                            alignment: Alignment.center,
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              child: Semantics(
+                                label: '${widget.moodName} emoji',
+                                child: Text(
+                                  widget.emoji!,
+                                  // large font to ensure emoji uses full box when rendered
+                                  style: const TextStyle(fontSize: 48),
+                                ),
+                              ),
+                            ),
                           ),
-                        const SizedBox(width: 8),
-                        Text(
-                          widget.moodName,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: _getMoodColor(widget.moodName),
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            widget.moodName,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: _getMoodColor(widget.moodName),
+                            ),
                           ),
                         ),
                       ],
@@ -238,21 +248,22 @@ class _SuccessDialogState extends State<SuccessDialog> with TickerProviderStateM
 
   Color _getMoodColor(String mood) {
     final colors = {
-      'Happy': const Color(0xFFFFD700),
-      'Sad': const Color(0xFF4169E1),
-      'Anxious': const Color(0xFFFF6347),
-      'Calm': const Color(0xFF32CD32),
-      'Excited': const Color(0xFFFF69B4),
-      'Angry': const Color(0xFFDC143C),
-      'Tired': const Color(0xFF808080),
-      'Content': const Color(0xFF00CED1),
-      'Frustrated': const Color(0xFFFF4500),
-      'Peaceful': const Color(0xFF98FB98),
+      'happy': const Color(0xFFFFD700),
+      'sad': const Color(0xFF4169E1),
+      'anxious': const Color(0xFFFF6347),
+      'calm': const Color(0xFF32CD32),
+      'excited': const Color(0xFFFF69B4),
+      'angry': const Color(0xFFDC143C),
+      'tired': const Color(0xFF808080),
+      'content': const Color(0xFF00CED1),
+      'frustrated': const Color(0xFFFF4500),
+      'peaceful': const Color(0xFF98FB98),
     };
 
     return colors[mood.toLowerCase()] ?? Colors.grey;
   }
 
+  // ignore: unused_element
   static void show(
     BuildContext context, {
     required String moodName,

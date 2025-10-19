@@ -231,6 +231,7 @@ class _MemoryStoryViewerState extends State<MemoryStoryViewer> {
     }
   }
 
+  // ignore: unused_element
   void _goToPreviousGroup() {
     if (_currentGroupIndex > 0) {
       _pageController.previousPage(

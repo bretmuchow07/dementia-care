@@ -20,7 +20,7 @@ class GalleryPage extends StatefulWidget {
 class _GalleryPageState extends State<GalleryPage> {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
-  final Uuid uuid = Uuid();
+  final Uuid uuid = const Uuid();
   final TextToSpeechService _ttsService = TextToSpeechService();
   List<Gallery> _galleryImages = [];
   Map<String, List<Gallery>> _groupedImages = {};
@@ -527,7 +527,7 @@ class _GalleryPageState extends State<GalleryPage> {
                 return GestureDetector(
                   onTap: () {
                     // Pass ALL images to the gallery view, not just the group
-                    final items = _galleryImages.map((g) => {'imageUrl': g.imageUrl ?? ''}).toList();
+                    final items = _galleryImages.map((g) => {'image_url': g.imageUrl ?? '', 'description': g.description}).toList();
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => GalleryView(
                         items: items,
