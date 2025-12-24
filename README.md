@@ -1,5 +1,8 @@
 # 🧠 Dementia Care Application
 
+<img width="1024" height="522" alt="Untitled design" src="https://github.com/user-attachments/assets/f52cbd76-cb7e-4eac-925a-9731fc564a55" />
+
+
 ## 📌 Overview
 The **Dementia Care Application** is a mobile-based system designed to support individuals living with dementia by helping them track emotional well-being and preserve meaningful memories.  
 The application enables patients to record moods, store images in a personal gallery, and manage personal profile information securely.
